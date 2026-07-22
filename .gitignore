@@ -1,0 +1,38 @@
+@'
+# Dependências
+node_modules/
+
+# Build
+dist/
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
+'@ | Set-Content -Encoding UTF8 .gitignore
+
+@'
+
+# Cache do TypeScript
+*.tsbuildinfo
+
+# Arquivos gerados a partir do vite.config.ts
+vite.config.js
+vite.config.d.ts
+vite.config.js.map
+vite.config.d.ts.map
+'@ | Add-Content -Encoding UTF8 .gitignore
