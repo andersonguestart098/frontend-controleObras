@@ -1,11 +1,11 @@
-import type {
+﻿import type {
   VercelRequest,
   VercelResponse,
 } from '@vercel/node';
 
 import {
   proxyPostToBackend,
-} from '../../server/backendProxy';
+} from '../../server/backendProxy.js';
 
 export default async function handler(
   request: VercelRequest,
