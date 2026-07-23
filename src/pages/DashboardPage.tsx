@@ -501,9 +501,7 @@ export function DashboardPage() {
                 }}
               >
                 <TaxSummaryTable
-                  data={
-                    dashboard.data.kpis.impostos
-                  }
+                  kpis={dashboard.data.kpis}
                 />
               </Box>
 

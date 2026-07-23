@@ -1,8 +1,16 @@
-import { useMemo } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
-import type { EChartsOption } from 'echarts';
+import type { ECharts, EChartsOption } from 'echarts';
+
+import { Box } from '@mui/material';
 
 import { EChart } from '@/components/charts/EChart';
+import { useInViewOnce } from '@/components/common/RollingCurrency';
 import type { ImpostoGrupoKpis } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -10,33 +18,123 @@ interface TaxBreakdownChartProps {
   data: ImpostoGrupoKpis;
 }
 
+const CHART_HEIGHT = 360;
+
+/*
+ * Tempo que cada fatia fica destacada na
+ * apresentação inicial.
+ */
+const HIGHLIGHT_STEP_MS = 1150;
+
+/*
+ * Espera a rosca terminar de desenhar antes
+ * de começar a destacar.
+ */
+const HIGHLIGHT_START_MS = 1900;
+
 export function TaxBreakdownChart({
   data,
 }: TaxBreakdownChartProps) {
+  const [containerRef, inView] =
+    useInViewOnce(
+      0.45,
+      '0px 0px -160px 0px',
+    );
+
+  const [chart, setChart] =
+    useState<ECharts | null>(null);
+
+  const handleReady = useCallback(
+    (instance: ECharts) => {
+      setChart(instance);
+    },
+    [],
+  );
+
+  const chartData = useMemo(
+    () => [
+      {
+        name: 'ICMS',
+        value: data.icms,
+      },
+      {
+        name: 'PIS',
+        value: data.pis,
+      },
+      {
+        name: 'COFINS',
+        value: data.cofins,
+      },
+      {
+        name: 'Comissão',
+        value: data.comissao,
+      },
+    ],
+    [data],
+  );
+
+  /*
+   * Depois que a rosca aparece, cada fatia é
+   * destacada uma a uma e no fim tudo volta
+   * ao formato original.
+   */
+  useEffect(() => {
+    if (!chart || !inView) {
+      return undefined;
+    }
+
+    const prefersReducedMotion =
+      window.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+      ).matches;
+
+    if (prefersReducedMotion) {
+      return undefined;
+    }
+
+    const timers: number[] = [];
+
+    chartData.forEach((_, index) => {
+      timers.push(
+        window.setTimeout(() => {
+          chart.dispatchAction({
+            type: 'downplay',
+            seriesIndex: 0,
+          });
+
+          chart.dispatchAction({
+            type: 'highlight',
+            seriesIndex: 0,
+            dataIndex: index,
+          });
+        }, HIGHLIGHT_START_MS + index * HIGHLIGHT_STEP_MS),
+      );
+    });
+
+    timers.push(
+      window.setTimeout(
+        () => {
+          chart.dispatchAction({
+            type: 'downplay',
+            seriesIndex: 0,
+          });
+        },
+        HIGHLIGHT_START_MS +
+          chartData.length * HIGHLIGHT_STEP_MS,
+      ),
+    );
+
+    return () => {
+      timers.forEach((timer) =>
+        window.clearTimeout(timer),
+      );
+    };
+  }, [chart, chartData, inView]);
+
   const option = useMemo<EChartsOption>(
     () => {
-      const chartData = [
-        {
-          name: 'ICMS',
-          value: data.icms,
-        },
-        {
-          name: 'PIS',
-          value: data.pis,
-        },
-        {
-          name: 'COFINS',
-          value: data.cofins,
-        },
-        {
-          name: 'Comissão',
-          value: data.comissao,
-        },
-      ];
-
       const total =
-        data.total_tributos +
-        data.comissao;
+        data.total_tributos + data.comissao;
 
       return {
         color: [
@@ -46,7 +144,7 @@ export function TaxBreakdownChart({
           '#ff994c',
         ],
 
-        animationDuration: 750,
+        animationDuration: 1700,
         animationEasing: 'cubicOut',
 
         tooltip: {
@@ -120,15 +218,9 @@ export function TaxBreakdownChart({
             name: 'Encargos',
             type: 'pie',
 
-            radius: [
-              '35%',
-              '57%',
-            ],
+            radius: ['35%', '57%'],
 
-            center: [
-              '50%',
-              '42%',
-            ],
+            center: ['50%', '42%'],
 
             avoidLabelOverlap: true,
             minShowLabelAngle: 0,
@@ -147,13 +239,13 @@ export function TaxBreakdownChart({
 
             emphasis: {
               scale: true,
-              scaleSize: 6,
+              scaleSize: 10,
 
               itemStyle: {
                 shadowColor:
-                  'rgba(15, 23, 42, 0.18)',
+                  'rgba(15, 23, 42, 0.22)',
 
-                shadowBlur: 12,
+                shadowBlur: 16,
               },
             },
 
@@ -168,10 +260,9 @@ export function TaxBreakdownChart({
                   params.value ?? 0,
                 );
 
-                const percentage =
-                  Number(
-                    params.percent ?? 0,
-                  );
+                const percentage = Number(
+                  params.percent ?? 0,
+                );
 
                 return (
                   `{name|${params.name}}\n` +
@@ -236,13 +327,20 @@ export function TaxBreakdownChart({
         ],
       };
     },
-    [data],
+    [chartData, data],
   );
 
   return (
-    <EChart
-      option={option}
-      height={360}
-    />
+    <Box ref={containerRef} sx={{ width: '100%' }}>
+      {inView ? (
+        <EChart
+          option={option}
+          height={CHART_HEIGHT}
+          onReady={handleReady}
+        />
+      ) : (
+        <Box sx={{ height: CHART_HEIGHT }} />
+      )}
+    </Box>
   );
 }

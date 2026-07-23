@@ -9,11 +9,16 @@ export interface VendasKpis {
   total_vendas: number;
   total_devolucoes: number;
   vendas_liquidas: number;
+
   custo_total: number;
+  custo_devolucoes: number;
+  custo_liquido: number;
 }
 
 export interface InternoObrasKpis {
   total: number;
+  custo_total: number;
+  resultado_apos_custo: number;
 }
 
 export interface RemessaFuturaKpis {
@@ -24,6 +29,13 @@ export interface RemessaFuturaKpis {
   custo_total: number;
   custo_entregue: number;
   saldo_custo: number;
+
+  /*
+   * Quantidades das notas filhas.
+   * Opcionais enquanto o backend não envia.
+   */
+  qtd_total?: number;
+  qtd_entregue?: number;
 }
 
 export interface ImpostoGrupoKpis {

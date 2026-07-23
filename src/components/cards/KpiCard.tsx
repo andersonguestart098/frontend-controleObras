@@ -7,7 +7,7 @@ import {
   Typography,
 } from '@mui/material';
 
-import { formatCurrency } from '@/utils/formatters';
+import { RollingCurrency } from '@/components/common/RollingCurrency';
 
 export type KpiCardTone =
   | 'primary'
@@ -24,6 +24,12 @@ interface KpiCardProps {
   subtitle?: string;
   subtitleColor?: string;
   tone?: KpiCardTone;
+
+  /*
+   * Atraso do giro em ms.
+   * Usado para escalonar um card após o outro.
+   */
+  rollDelay?: number;
 }
 
 const toneStyles: Record<
@@ -66,6 +72,7 @@ export function KpiCard({
   subtitle,
   subtitleColor,
   tone = 'primary',
+  rollDelay = 0,
 }: KpiCardProps) {
   const styles = toneStyles[tone];
 
@@ -122,13 +129,21 @@ export function KpiCard({
               sx={{
                 color: 'text.secondary',
                 fontWeight: 650,
+
+                /*
+                 * Reserva o espaço de duas linhas
+                 * para que o valor de todos os cards
+                 * fique na mesma altura.
+                 */
+                minHeight: '2.6em',
+                lineHeight: 1.3,
               }}
             >
               {title}
             </Typography>
 
             <Typography
-              component="strong"
+              component="div"
               sx={{
                 display: 'block',
                 mt: 0.8,
@@ -147,7 +162,10 @@ export function KpiCard({
                 whiteSpace: 'nowrap',
               }}
             >
-              {formatCurrency(value)}
+              <RollingCurrency
+                value={value}
+                startDelay={rollDelay}
+              />
             </Typography>
 
             {subtitle ? (

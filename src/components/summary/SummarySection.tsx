@@ -3,12 +3,12 @@ import type { ReactNode } from 'react';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
 import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
-import CalculateOutlinedIcon from '@mui/icons-material/CalculateOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import PriceCheckOutlinedIcon from '@mui/icons-material/PriceCheckOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
 import {
   Box,
   Card,
@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 
 import { KpiCard } from '@/components/cards/KpiCard';
+import { RollingCurrency } from '@/components/common/RollingCurrency';
 import type { DashboardKpis } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -31,6 +32,7 @@ interface ConsolidatedMetricProps {
   icon: ReactNode;
   color: string;
   backgroundColor: string;
+  delayStep?: number;
 }
 
 interface ChargesMetricProps {
@@ -45,11 +47,13 @@ function ConsolidatedMetric({
   icon,
   color,
   backgroundColor,
+  delayStep = 70,
 }: ConsolidatedMetricProps) {
   return (
     <Box
       sx={{
         minWidth: 0,
+        height: '100%',
 
         display: 'flex',
         alignItems: 'flex-start',
@@ -110,22 +114,35 @@ function ConsolidatedMetric({
         {icon}
       </Box>
 
-      <Box sx={{ minWidth: 0 }}>
+      <Box
+        sx={{
+          minWidth: 0,
+          flex: 1,
+
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <Typography
           variant="caption"
           sx={{
             display: 'block',
 
+            minHeight: '2.2em',
+
             color: '#64748b',
 
             fontSize: '0.73rem',
             fontWeight: 800,
+
+            lineHeight: 1.1,
           }}
         >
           {title}
         </Typography>
 
         <Typography
+          component="div"
           sx={{
             mt: 0.35,
 
@@ -142,7 +159,10 @@ function ConsolidatedMetric({
             whiteSpace: 'nowrap',
           }}
         >
-          {formatCurrency(value)}
+          <RollingCurrency
+            value={value}
+            delayStep={delayStep}
+          />
         </Typography>
 
         <Typography
@@ -150,7 +170,8 @@ function ConsolidatedMetric({
           sx={{
             display: 'block',
 
-            mt: 0.55,
+            mt: 'auto',
+            pt: 0.55,
 
             color: '#94a3b8',
 
@@ -175,6 +196,7 @@ function ChargesMetric({
     <Box
       sx={{
         minWidth: 0,
+        height: '100%',
 
         display: 'flex',
         alignItems: 'flex-start',
@@ -236,16 +258,28 @@ function ChargesMetric({
         <ReceiptLongOutlinedIcon />
       </Box>
 
-      <Box sx={{ minWidth: 0, flex: 1 }}>
+      <Box
+        sx={{
+          minWidth: 0,
+          flex: 1,
+
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <Typography
           variant="caption"
           sx={{
             display: 'block',
 
+            minHeight: '2.2em',
+
             color: '#64748b',
 
             fontSize: '0.73rem',
             fontWeight: 800,
+
+            lineHeight: 1.1,
           }}
         >
           Encargos consolidados
@@ -259,7 +293,7 @@ function ChargesMetric({
 
             gap: 1.25,
 
-            mt: 0.55,
+            mt: 0.35,
           }}
         >
           <Box sx={{ minWidth: 0 }}>
@@ -281,6 +315,7 @@ function ChargesMetric({
             </Typography>
 
             <Typography
+              component="div"
               sx={{
                 mt: 0.2,
 
@@ -297,7 +332,10 @@ function ChargesMetric({
                 whiteSpace: 'nowrap',
               }}
             >
-              {formatCurrency(taxes)}
+              <RollingCurrency
+                value={taxes}
+                delayStep={60}
+              />
             </Typography>
           </Box>
 
@@ -329,6 +367,7 @@ function ChargesMetric({
             </Typography>
 
             <Typography
+              component="div"
               sx={{
                 mt: 0.2,
 
@@ -345,7 +384,10 @@ function ChargesMetric({
                 whiteSpace: 'nowrap',
               }}
             >
-              {formatCurrency(commission)}
+              <RollingCurrency
+                value={commission}
+                delayStep={60}
+              />
             </Typography>
           </Box>
         </Box>
@@ -355,7 +397,8 @@ function ChargesMetric({
           sx={{
             display: 'block',
 
-            mt: 0.65,
+            mt: 'auto',
+            pt: 0.65,
 
             color: '#94a3b8',
 
@@ -365,7 +408,7 @@ function ChargesMetric({
             lineHeight: 1.35,
           }}
         >
-          Tributos e comissão exibidos separadamente
+          Tributos e comissão
         </Typography>
       </Box>
     </Box>
@@ -376,39 +419,63 @@ export function SummarySection({
   kpis,
 }: SummarySectionProps) {
   /*
-   * Soma gerencial dos cards:
-   *
-   * Faturamento remessas
-   * + Entrega remessa futura
-   * + Saldo remessa
-   * + Vendas normais
-   * + Interno Obras
-   * + Devoluções
+   * CUSTOS POR ORIGEM
    */
-  const totalGeral =
-    kpis.remessa_futura.total_faturamento +
-    kpis.remessa_futura.total_entregue +
-    kpis.remessa_futura.saldo +
-    kpis.vendas.total_vendas +
-    kpis.interno_obras.total +
-    kpis.vendas.total_devolucoes;
 
-  /*
-   * Total de custo conforme solicitado:
-   *
-   * Custo total da remessa
-   * + custo entregue
-   * + custo das vendas normais
-   *
-   * O saldo de custo não entra mais nessa soma.
-   */
-  const totalCusto =
-    kpis.remessa_futura.custo_total +
-    kpis.remessa_futura.custo_entregue +
+  const custoRemessa =
+    kpis.remessa_futura.custo_total;
+
+  const custoRemessaEntregue =
+    kpis.remessa_futura.custo_entregue;
+
+  const custoVendas =
     kpis.vendas.custo_total;
 
+  const custoDevolucoes =
+    kpis.vendas.custo_devolucoes;
+
+  const custoInternoObras =
+    kpis.interno_obras.custo_total;
+
+  /*
+   * TOTAL DE CUSTO:
+   *
+   * Custo da remessa
+   * + custo das vendas normais
+   * + custo do Interno Obras
+   * - custo das devoluções
+   *
+   * O custo entregue da remessa não entra
+   * aqui porque já faz parte do custo total
+   * dela, senão a remessa contaria duas vezes.
+   */
+  const totalCusto =
+    custoRemessa +
+    custoVendas +
+    custoInternoObras -
+    custoDevolucoes;
+
+  /*
+   * TOTAL DE CUSTO ENTREGUE:
+   *
+   * Vendas e Interno Obras entregam no ato,
+   * a devolução estorna e a remessa entra
+   * apenas com o que já foi entregue.
+   */
   const totalCustoEntregue =
-    kpis.remessa_futura.custo_entregue;
+    custoRemessaEntregue +
+    custoVendas +
+    custoInternoObras -
+    custoDevolucoes;
+
+  /*
+   * SALDO DE CUSTOS:
+   *
+   * O que ainda não foi baixado por entrega.
+   * Confere com kpis.remessa_futura.saldo_custo.
+   */
+  const saldoCustos =
+    totalCusto - totalCustoEntregue;
 
   const totalImpostos =
     kpis.impostos.consolidado_liquido
@@ -456,11 +523,17 @@ export function SummarySection({
           display: 'grid',
           gap: 2,
 
+          alignItems: 'stretch',
+
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, minmax(0, 1fr))',
             md: 'repeat(3, minmax(0, 1fr))',
             xl: 'repeat(6, minmax(0, 1fr))',
+          },
+
+          '& > *': {
+            height: '100%',
           },
         }}
       >
@@ -471,11 +544,12 @@ export function SummarySection({
               .total_faturamento
           }
           subtitle={`Custo: ${formatCurrency(
-            kpis.remessa_futura.custo_total,
+            custoRemessa,
           )}`}
           subtitleColor="#FF746D"
           icon={<Inventory2OutlinedIcon />}
           tone="primary"
+          rollDelay={0}
         />
 
         <KpiCard
@@ -485,13 +559,14 @@ export function SummarySection({
               .total_entregue
           }
           subtitle={`Custo entregue: ${formatCurrency(
-            kpis.remessa_futura.custo_entregue,
+            custoRemessaEntregue,
           )}`}
           subtitleColor="#4EAAEF"
           icon={
             <LocalShippingOutlinedIcon />
           }
           tone="info"
+          rollDelay={70}
         />
 
         <KpiCard
@@ -505,27 +580,33 @@ export function SummarySection({
             <AccountBalanceWalletOutlinedIcon />
           }
           tone="warning"
+          rollDelay={140}
         />
 
         <KpiCard
           title="Vendas normais"
           value={kpis.vendas.total_vendas}
           subtitle={`Exceto Interno Obras e remessas • Custo: ${formatCurrency(
-            kpis.vendas.custo_total,
+            custoVendas,
           )}`}
           subtitleColor="#4EAAEF"
           icon={<PaymentsOutlinedIcon />}
           tone="info"
+          rollDelay={210}
         />
 
         <KpiCard
           title="Interno Obras"
           value={kpis.interno_obras.total}
-          subtitle="Plano de pagamento 323"
+          subtitle={`Custo: ${formatCurrency(
+            custoInternoObras,
+          )}`}
+          subtitleColor="#4EAAEF"
           icon={
             <BusinessCenterOutlinedIcon />
           }
           tone="secondary"
+          rollDelay={280}
         />
 
         <KpiCard
@@ -533,12 +614,15 @@ export function SummarySection({
           value={
             kpis.vendas.total_devolucoes
           }
-          subtitle="Devoluções vinculadas à obra"
+          subtitle={`Custo estornado: ${formatCurrency(
+            custoDevolucoes,
+          )}`}
           subtitleColor="#FF746D"
           icon={
             <AssignmentReturnOutlinedIcon />
           }
           tone="error"
+          rollDelay={350}
         />
       </Box>
 
@@ -563,6 +647,8 @@ export function SummarySection({
           sx={{
             display: 'grid',
 
+            alignItems: 'stretch',
+
             gridTemplateColumns: {
               xs: '1fr',
               sm: 'repeat(2, minmax(0, 1fr))',
@@ -577,7 +663,7 @@ export function SummarySection({
             },
           }}
         >
-          {/* TOTAL GERAL */}
+          {/* SALDO DE CUSTOS */}
           <Box
             sx={{
               position: 'relative',
@@ -620,7 +706,7 @@ export function SummarySection({
                 borderRadius: '50%',
 
                 backgroundColor:
-                  'rgba(78, 170, 239, 0.16)',
+                  'rgba(193, 141, 52, 0.18)',
 
                 pointerEvents: 'none',
               },
@@ -650,10 +736,11 @@ export function SummarySection({
                     textTransform: 'uppercase',
                   }}
                 >
-                  Consolidado 
+                  Saldo de custos
                 </Typography>
 
                 <Typography
+                  component="div"
                   sx={{
                     mt: 0.7,
 
@@ -669,7 +756,11 @@ export function SummarySection({
                     letterSpacing: '-0.04em',
                   }}
                 >
-                  {formatCurrency(totalGeral)}
+                  <RollingCurrency
+                    value={saldoCustos}
+                    duration={1300}
+                    delayStep={85}
+                  />
                 </Typography>
               </Box>
 
@@ -698,7 +789,7 @@ export function SummarySection({
                   },
                 }}
               >
-                <CalculateOutlinedIcon />
+                <SavingsOutlinedIcon />
               </Box>
             </Box>
 
@@ -716,7 +807,7 @@ export function SummarySection({
               }}
             >
               <Chip
-                label="TOTAL DOS CARDS"
+                label="CUSTO A ENTREGAR"
                 size="small"
                 sx={{
                   height: 23,
@@ -741,7 +832,7 @@ export function SummarySection({
                   fontWeight: 600,
                 }}
               >
-                Soma bruta dos indicadores exibidos
+                Custo total menos o custo já entregue
               </Typography>
             </Box>
           </Box>
@@ -749,7 +840,7 @@ export function SummarySection({
           <ConsolidatedMetric
             title="Total custo"
             value={totalCusto}
-            helper="Sem considerar o saldo de custo"
+            helper="Remessa, vendas e Interno Obras, sem as devoluções"
             icon={<PriceCheckOutlinedIcon />}
             color="#FF746D"
             backgroundColor="rgba(255, 116, 109, 0.07)"
@@ -762,6 +853,7 @@ export function SummarySection({
             icon={<Inventory2OutlinedIcon />}
             color="#4EAAEF"
             backgroundColor="rgba(78, 170, 239, 0.07)"
+            delayStep={80}
           />
 
           <ChargesMetric

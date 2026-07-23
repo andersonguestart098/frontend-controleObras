@@ -1,16 +1,26 @@
-import { useMemo } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import type { EChartsOption } from 'echarts';
 
 import { Box } from '@mui/material';
 
 import { EChart } from '@/components/charts/EChart';
+import { useInViewOnce } from '@/components/common/RollingCurrency';
 import type { DashboardKpis } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
 
 interface SalesCompositionChartProps {
   kpis: DashboardKpis;
 }
+
+const CHART_HEIGHT = 330;
+
+const BAR_DURATION = 2200;
+const BAR_DELAY_STEP = 430;
 
 const compactCurrencyFormatter =
   new Intl.NumberFormat('pt-BR', {
@@ -61,38 +71,113 @@ function formatCompactCurrency(
 export function SalesCompositionChart({
   kpis,
 }: SalesCompositionChartProps) {
+  /*
+   * O gráfico só é montado quando entra na
+   * tela, para a animação acontecer na frente
+   * do usuário.
+   */
+  const [containerRef, inView] =
+    useInViewOnce(
+      0.45,
+      '0px 0px -160px 0px',
+    );
+
+  /*
+   * As barras nascem no zero e só depois sobem
+   * para o valor real.
+   *
+   * A animação de entrada do ECharts ignora
+   * easing com repique, então fazemos o
+   * crescimento como uma atualização de dados.
+   */
+  const [grown, setGrown] = useState(false);
+
+  useEffect(() => {
+    if (!inView) {
+      setGrown(false);
+
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setGrown(true);
+    }, 420);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [inView]);
+
   const option = useMemo<EChartsOption>(
     () => {
+      const valorVendas =
+        kpis.vendas.total_vendas;
+
+      const valorRemessas =
+        kpis.remessa_futura
+          .total_faturamento;
+
+      /*
+       * Vendas e remessas viram uma barra só,
+       * já somada. A quebra continua visível
+       * no tooltip.
+       */
       const chartData = [
         {
-          name: 'Vendas',
+          name: 'Vendas e remessas',
           value:
-            kpis.vendas.total_vendas,
+            valorVendas + valorRemessas,
+
+          detalhe: [
+            {
+              label: 'Vendas',
+              value: valorVendas,
+            },
+            {
+              label: 'Remessas',
+              value: valorRemessas,
+            },
+          ],
+
+          color: '#4f6edb',
         },
         {
           name: 'Interno Obras',
-          value:
-            kpis.interno_obras.total,
-        },
-        {
-          name: 'Remessas',
-          value:
-            kpis.remessa_futura
-              .total_faturamento,
+          value: kpis.interno_obras.total,
+
+          detalhe: [],
+
+          color: '#4f6edb',
         },
         {
           name: 'Devoluções',
           value:
-            kpis.vendas
-              .total_devolucoes,
+            kpis.vendas.total_devolucoes,
+
+          detalhe: [],
+
+          color: '#dc2626',
         },
       ];
 
-      return {
-        color: ['#4f6edb'],
+      /*
+       * Escala travada no maior valor para o
+       * eixo não pular quando as barras sobem.
+       */
+      const maiorValor = Math.max(
+        ...chartData.map(
+          (item) => item.value,
+        ),
+        1,
+      );
 
-        animationDuration: 700,
-        animationEasing: 'cubicOut',
+      return {
+        animationDurationUpdate: BAR_DURATION,
+        animationEasingUpdate: 'elasticOut',
+
+        animationDelayUpdate: (
+          index: number,
+        ) => index * BAR_DELAY_STEP,
 
         tooltip: {
           trigger: 'axis',
@@ -106,10 +191,40 @@ export function SalesCompositionChart({
             },
           },
 
-          valueFormatter: (value) =>
-            formatCurrency(
-              Number(value ?? 0),
-            ),
+          formatter: (params: unknown) => {
+            const list = Array.isArray(params)
+              ? params
+              : [params];
+
+            const first = list[0] as {
+              dataIndex: number;
+            };
+
+            const item =
+              chartData[first.dataIndex];
+
+            if (!item) {
+              return '';
+            }
+
+            const linhas = item.detalhe
+              .map(
+                (parte) =>
+                  `<div style="color:#64748b">${parte.label}: ` +
+                  `<strong style="color:#0f172a">${formatCurrency(
+                    parte.value,
+                  )}</strong></div>`,
+              )
+              .join('');
+
+            return (
+              `<div style="font-weight:700;margin-bottom:4px">${item.name}</div>` +
+              `<div style="font-weight:800;color:#0f172a">${formatCurrency(
+                item.value,
+              )}</div>` +
+              linhas
+            );
+          },
         },
 
         grid: {
@@ -148,7 +263,9 @@ export function SalesCompositionChart({
 
         yAxis: {
           type: 'value',
+
           min: 0,
+          max: Math.ceil(maiorValor * 1.15),
 
           axisTick: {
             show: false,
@@ -181,24 +298,21 @@ export function SalesCompositionChart({
             name: 'Valor',
             type: 'bar',
 
-            data: chartData.map(
-              (item) => item.value,
-            ),
+            data: chartData.map((item) => ({
+              value: grown ? item.value : 0,
 
-            barMaxWidth: 60,
+              itemStyle: {
+                color: item.color,
+              },
+            })),
+
+            barMaxWidth: 70,
 
             itemStyle: {
-              color: '#4f6edb',
-
-              borderRadius: [
-                8,
-                8,
-                0,
-                0,
-              ],
+              borderRadius: [8, 8, 0, 0],
 
               shadowColor:
-                'rgba(79, 110, 219, 0.18)',
+                'rgba(15, 23, 42, 0.16)',
 
               shadowBlur: 8,
               shadowOffsetY: 3,
@@ -206,10 +320,8 @@ export function SalesCompositionChart({
 
             emphasis: {
               itemStyle: {
-                color: '#3f5fc9',
-
                 shadowColor:
-                  'rgba(79, 110, 219, 0.28)',
+                  'rgba(15, 23, 42, 0.26)',
 
                 shadowBlur: 12,
                 shadowOffsetY: 4,
@@ -217,7 +329,7 @@ export function SalesCompositionChart({
             },
 
             label: {
-              show: true,
+              show: grown,
               position: 'top',
               distance: 10,
 
@@ -228,9 +340,7 @@ export function SalesCompositionChart({
 
               formatter: (params) =>
                 formatCurrency(
-                  Number(
-                    params.value ?? 0,
-                  ),
+                  Number(params.value ?? 0),
                 ),
             },
 
@@ -241,26 +351,21 @@ export function SalesCompositionChart({
         ],
       };
     },
-    [kpis],
+    [grown, kpis],
   );
 
-  const animationKey = [
-    kpis.vendas.total_vendas,
-    kpis.interno_obras.total,
-    kpis.remessa_futura
-      .total_faturamento,
-    kpis.vendas.total_devolucoes,
-  ].join('-');
-
   return (
-    <Box
-      key={animationKey}
-      sx={fadeUpSx}
-    >
-      <EChart
-        option={option}
-        height={330}
-      />
+    <Box ref={containerRef} sx={fadeUpSx}>
+      {inView ? (
+        <EChart
+          option={option}
+          height={CHART_HEIGHT}
+        />
+      ) : (
+        <Box
+          sx={{ height: CHART_HEIGHT }}
+        />
+      )}
     </Box>
   );
 }
