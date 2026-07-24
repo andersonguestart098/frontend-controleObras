@@ -1,4 +1,8 @@
-import { useMemo } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import type { EChartsOption } from 'echarts';
 
@@ -45,7 +49,42 @@ interface GaugeConfig {
   delay: number;
 }
 
+/*
+ * Só usamos esses dois easings, tipados como
+ * literal para o TypeScript aceitar em
+ * animationEasingUpdate.
+ */
+type GaugeEasing = 'cubicIn' | 'cubicOut';
+
+interface GaugeFrame {
+  value: number;
+  duration: number;
+  easing: GaugeEasing;
+}
+
+interface RevStep {
+  ratio: number;
+  duration: number;
+  easing: GaugeEasing;
+}
+
 const GAUGE_HEIGHT = 230;
+
+/*
+ * Aceleradas do ponteiro antes de assentar.
+ *
+ * ratio é a fração do valor final, então o
+ * ponteiro sobe, alivia, sobe mais, alivia de
+ * novo, passa um pouco do alvo e volta.
+ */
+const REV_STEPS: RevStep[] = [
+  { ratio: 0.42, duration: 380, easing: 'cubicOut' },
+  { ratio: 0.24, duration: 260, easing: 'cubicIn' },
+  { ratio: 0.78, duration: 400, easing: 'cubicOut' },
+  { ratio: 0.55, duration: 260, easing: 'cubicIn' },
+  { ratio: 1.09, duration: 520, easing: 'cubicOut' },
+  { ratio: 1, duration: 460, easing: 'cubicOut' },
+];
 
 function calculatePercent(
   parte: number,
@@ -62,6 +101,12 @@ function calculatePercent(
   );
 }
 
+function clampPercent(value: number): number {
+  return Number(
+    Math.min(Math.max(value, 0), 100).toFixed(1),
+  );
+}
+
 function GaugeCard({
   config,
   active,
@@ -69,15 +114,80 @@ function GaugeCard({
   config: GaugeConfig;
   active: boolean;
 }) {
+  const [frame, setFrame] =
+    useState<GaugeFrame>({
+      value: 0,
+      duration: 0,
+      easing: 'cubicOut',
+    });
+
+  /*
+   * Sequência de aceleradas até o valor real.
+   */
+  useEffect(() => {
+    if (!active) {
+      setFrame({
+        value: 0,
+        duration: 0,
+        easing: 'cubicOut',
+      });
+
+      return undefined;
+    }
+
+    const prefersReducedMotion =
+      window.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+      ).matches;
+
+    if (prefersReducedMotion) {
+      setFrame({
+        value: config.percent,
+        duration: 0,
+        easing: 'cubicOut',
+      });
+
+      return undefined;
+    }
+
+    const timers: number[] = [];
+
+    let elapsed = config.delay;
+
+    REV_STEPS.forEach((step) => {
+      timers.push(
+        window.setTimeout(() => {
+          setFrame({
+            value: clampPercent(
+              config.percent * step.ratio,
+            ),
+
+            duration: step.duration,
+            easing: step.easing,
+          });
+        }, elapsed),
+      );
+
+      elapsed += step.duration;
+    });
+
+    return () => {
+      timers.forEach((timer) =>
+        window.clearTimeout(timer),
+      );
+    };
+  }, [active, config]);
+
   const option = useMemo<EChartsOption>(
     () => ({
       /*
-       * O ponteiro sobe até o percentual e o
-       * número vai contando junto.
+       * Entra parado no zero e todo o movimento
+       * acontece nas atualizações.
        */
-      animationDuration: 2700,
-      animationEasing: 'cubicOut',
-      animationDelay: config.delay,
+      animationDuration: 0,
+
+      animationDurationUpdate: frame.duration,
+      animationEasingUpdate: frame.easing,
 
       series: [
         {
@@ -89,8 +199,10 @@ function GaugeCard({
           min: 0,
           max: 100,
 
-          animationDuration: 2700,
-          animationDelay: config.delay,
+          animationDuration: 0,
+          animationDurationUpdate:
+            frame.duration,
+          animationEasingUpdate: frame.easing,
 
           progress: {
             show: true,
@@ -136,14 +248,14 @@ function GaugeCard({
 
           data: [
             {
-              value: config.percent,
+              value: frame.value,
               name: config.title,
             },
           ],
         },
       ],
     }),
-    [config],
+    [config, frame],
   );
 
   return (
