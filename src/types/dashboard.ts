@@ -21,6 +21,12 @@ export interface InternoObrasKpis {
   resultado_apos_custo: number;
 }
 
+export interface BonificadosKpis {
+  total: number;
+  custo_total: number;
+  resultado_apos_custo?: number;
+}
+
 export interface RemessaFuturaKpis {
   total_faturamento: number;
   total_entregue: number;
@@ -58,6 +64,13 @@ export interface ImpostosKpis {
 export interface DashboardKpis {
   vendas: VendasKpis;
   interno_obras: InternoObrasKpis;
+
+  /*
+   * Opcional enquanto o backend não envia
+   * os KPIs de bonificados.
+   */
+  bonificados?: BonificadosKpis;
+
   remessa_futura: RemessaFuturaKpis;
   impostos: ImpostosKpis;
 }

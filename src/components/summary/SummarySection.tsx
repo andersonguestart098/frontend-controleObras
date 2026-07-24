@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
 import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
+import CardGiftcardOutlinedIcon from '@mui/icons-material/CardGiftcardOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
@@ -38,6 +39,295 @@ interface ConsolidatedMetricProps {
 interface ChargesMetricProps {
   taxes: number;
   commission: number;
+}
+
+interface BonusBubbleProps {
+  value: number;
+  cost: number;
+  rollDelay?: number;
+}
+
+const BUBBLE_COLOR = '#C96A16';
+
+/*
+ * Rastro de bolhas subindo pela direita do
+ * card até o balão.
+ *
+ * Todos os right são negativos, então as
+ * bolhas ficam fora do card.
+ *
+ * A curva abre rápido para a direita e depois
+ * sobe quase reta, formando o C deitado até o
+ * balão.
+ *
+ * A última bolha encosta no centro da borda de
+ * baixo do balão.
+ *
+ * O centro do balão fica a 105px da borda do
+ * card: 16px de margem mais metade dos 178px
+ * de largura mínima.
+ */
+const BUBBLE_TRAIL = [
+  { size: 6, bottom: 6, right: -10 },
+  { size: 8, bottom: 32, right: -46 },
+  { size: 10, bottom: 62, right: -74 },
+  { size: 11, bottom: 92, right: -94 },
+  { size: 12, bottom: 117, right: -106 },
+  { size: 14, bottom: 137, right: -112 },
+];
+
+/*
+ * Balão flutuante com o dado de bonificações.
+ *
+ * No desktop ele sai do fluxo e fica pairando
+ * acima do card de devoluções. No mobile entra
+ * na coluna, logo acima do card.
+ */
+function BonusBubble({
+  value,
+  cost,
+  rollDelay = 380,
+}: BonusBubbleProps) {
+  return (
+    <>
+      {/* RASTRO EM CURVA */}
+      {BUBBLE_TRAIL.map((bubble, index) => (
+        <Box
+          key={bubble.size}
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
+
+            display: {
+              xs: 'none',
+              xl: 'block',
+            },
+
+            bottom: bubble.bottom,
+            right: bubble.right,
+
+            width: bubble.size,
+            height: bubble.size,
+
+            borderRadius: '50%',
+
+            background:
+              'linear-gradient(135deg, #fffaf5 0%, #ffedd5 100%)',
+
+            border:
+              '1px solid rgba(221, 127, 19, 0.28)',
+
+            boxShadow:
+              '0 3px 8px rgba(180, 102, 13, 0.18)',
+
+            zIndex: 2,
+
+            animation: `bonusFloat 4.2s ease-in-out ${
+              700 + index * 130
+            }ms infinite`,
+
+            '@keyframes bonusFloat': {
+              '0%, 100%': {
+                transform: 'translateY(0)',
+              },
+
+              '50%': {
+                transform: 'translateY(-6px)',
+              },
+            },
+
+            '@media (prefers-reduced-motion: reduce)':
+              {
+                animation: 'none',
+              },
+          }}
+        />
+      ))}
+
+      {/* BALÃO */}
+      <Box
+        sx={{
+          position: {
+            xs: 'relative',
+            md: 'absolute',
+          },
+
+          /*
+           * Em telas largas o balão sai pela
+           * direita do card, desacoplado.
+           *
+           * Abaixo disso não há espaço lateral,
+           * então ele volta para cima do card.
+           */
+          top: {
+            md: -92,
+            xl: 'auto',
+          },
+
+          right: {
+            md: 2,
+            xl: 'auto',
+          },
+
+          bottom: {
+            xl: 150,
+          },
+
+          left: {
+            xl: '100%',
+          },
+
+          ml: {
+            xl: 2,
+          },
+
+          mr: {
+            md: 1,
+            xl: 0,
+          },
+
+          zIndex: 3,
+
+          mb: {
+            xs: 1.2,
+            md: 0,
+          },
+
+          px: 2.9,
+          py: 2.1,
+
+          minWidth: {
+            xl: 178,
+          },
+
+          display: 'inline-flex',
+          flexDirection: 'column',
+
+          whiteSpace: 'nowrap',
+
+          borderRadius: '24px 24px 10px 24px',
+
+          background:
+            'linear-gradient(135deg, #fffaf5 0%, #ffedd5 100%)',
+
+          border:
+            '1px solid rgba(221, 127, 19, 0.22)',
+
+          boxShadow:
+            '0 12px 30px rgba(180, 102, 13, 0.2), ' +
+            '0 2px 6px rgba(15, 23, 42, 0.05)',
+
+          transformOrigin: 'bottom right',
+
+          animation:
+            'bonusPop 560ms cubic-bezier(0.22, 1, 0.36, 1) both, ' +
+            'bonusFloat 4.2s ease-in-out 560ms infinite',
+
+          transition:
+            'transform 200ms ease, box-shadow 200ms ease',
+
+          '&:hover': {
+            boxShadow:
+              '0 16px 38px rgba(180, 102, 13, 0.28), ' +
+              '0 3px 8px rgba(15, 23, 42, 0.06)',
+          },
+
+          '@keyframes bonusPop': {
+            '0%': {
+              opacity: 0,
+              transform:
+                'translateY(10px) scale(0.92)',
+            },
+
+            '100%': {
+              opacity: 1,
+              transform:
+                'translateY(0) scale(1)',
+            },
+          },
+
+          '@keyframes bonusFloat': {
+            '0%, 100%': {
+              transform: 'translateY(0)',
+            },
+
+            '50%': {
+              transform: 'translateY(-6px)',
+            },
+          },
+
+          '@media (prefers-reduced-motion: reduce)':
+            {
+              animation: 'none',
+              opacity: 1,
+            },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.7,
+          }}
+        >
+          <CardGiftcardOutlinedIcon
+            sx={{
+              fontSize: 17,
+              color: BUBBLE_COLOR,
+            }}
+          />
+
+          <Typography
+            variant="caption"
+            sx={{
+              color: BUBBLE_COLOR,
+
+              fontSize: '0.68rem',
+              fontWeight: 900,
+
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Bonificações
+          </Typography>
+        </Box>
+
+        <Typography
+          component="div"
+          sx={{
+            mt: 0.5,
+
+            color: '#0f172a',
+
+            fontSize: '1.5rem',
+            lineHeight: 1.15,
+            fontWeight: 900,
+            letterSpacing: '-0.025em',
+          }}
+        >
+          <RollingCurrency
+            value={value}
+            startDelay={rollDelay}
+          />
+        </Typography>
+
+        <Typography
+          variant="caption"
+          sx={{
+            mt: 0.5,
+
+            color: BUBBLE_COLOR,
+
+            fontSize: '0.78rem',
+            fontWeight: 700,
+          }}
+        >
+          Custo: {formatCurrency(cost)}
+        </Typography>
+      </Box>
+    </>
+  );
 }
 
 function ConsolidatedMetric({
@@ -438,11 +728,25 @@ export function SummarySection({
     kpis.interno_obras.custo_total;
 
   /*
+   * BONIFICADOS:
+   *
+   * saem do estoque sem receita, então
+   * entram apenas como custo.
+   */
+
+  const totalBonificados =
+    kpis.bonificados?.total ?? 0;
+
+  const custoBonificados =
+    kpis.bonificados?.custo_total ?? 0;
+
+  /*
    * TOTAL DE CUSTO:
    *
    * Custo da remessa
    * + custo das vendas normais
    * + custo do Interno Obras
+   * + custo dos bonificados
    * - custo das devoluções
    *
    * O custo entregue da remessa não entra
@@ -452,20 +756,22 @@ export function SummarySection({
   const totalCusto =
     custoRemessa +
     custoVendas +
-    custoInternoObras -
+    custoInternoObras +
+    custoBonificados -
     custoDevolucoes;
 
   /*
    * TOTAL DE CUSTO ENTREGUE:
    *
-   * Vendas e Interno Obras entregam no ato,
-   * a devolução estorna e a remessa entra
-   * apenas com o que já foi entregue.
+   * Vendas, Interno Obras e bonificados saem
+   * no ato, a devolução estorna e a remessa
+   * entra apenas com o que já foi entregue.
    */
   const totalCustoEntregue =
     custoRemessaEntregue +
     custoVendas +
-    custoInternoObras -
+    custoInternoObras +
+    custoBonificados -
     custoDevolucoes;
 
   /*
@@ -609,21 +915,28 @@ export function SummarySection({
           rollDelay={280}
         />
 
-        <KpiCard
-          title="Devoluções"
-          value={
-            kpis.vendas.total_devolucoes
-          }
-          subtitle={`Custo estornado: ${formatCurrency(
-            custoDevolucoes,
-          )}`}
-          subtitleColor="#FF746D"
-          icon={
-            <AssignmentReturnOutlinedIcon />
-          }
-          tone="error"
-          rollDelay={350}
-        />
+        <Box sx={{ position: 'relative' }}>
+          <BonusBubble
+            value={totalBonificados}
+            cost={custoBonificados}
+          />
+
+          <KpiCard
+            title="Devoluções"
+            value={
+              kpis.vendas.total_devolucoes
+            }
+            subtitle={`Custo estornado: ${formatCurrency(
+              custoDevolucoes,
+            )}`}
+            subtitleColor="#FF746D"
+            icon={
+              <AssignmentReturnOutlinedIcon />
+            }
+            tone="error"
+            rollDelay={350}
+          />
+        </Box>
       </Box>
 
       {/* CONSOLIDADO RÁPIDO */}
@@ -840,7 +1153,7 @@ export function SummarySection({
           <ConsolidatedMetric
             title="Total custo"
             value={totalCusto}
-            helper="Remessa, vendas e Interno Obras, sem as devoluções"
+            helper="Remessa, vendas, Interno Obras e bonificados, sem as devoluções"
             icon={<PriceCheckOutlinedIcon />}
             color="#FF746D"
             backgroundColor="rgba(255, 116, 109, 0.07)"
