@@ -40,6 +40,7 @@ interface TaxTableRow {
   consolidated?: boolean;
   remessa?: boolean;
   entrega?: boolean;
+  bonificado?: boolean;
 }
 
 interface SummaryItemProps {
@@ -65,6 +66,8 @@ const taxColors = {
   irpjCssl: '#9333ea',
   tributos: '#d97706',
   comissao: '#f97316',
+
+  bonificado: '#C96A16',
 
   negative: '#dc2626',
   normal: '#0f172a',
@@ -574,6 +577,18 @@ export function TaxSummaryTable({
     );
 
   /*
+   * BONIFICAÇÕES:
+   *
+   * valor da nota, sem receita efetiva,
+   * mas dentro da base de IRPJ/CSLL.
+   */
+
+  const valorBonificados =
+    safeNumber(
+      kpis.bonificados?.valor_nota,
+    );
+
+  /*
    * REMESSA FUTURA:
    * valor faturado da nota principal.
    */
@@ -600,8 +615,12 @@ export function TaxSummaryTable({
    *
    * Vendas
    * - devoluções
+   * + Bonificações
    * + Interno Obras
    * + Remessa futura
+   *
+   * A bonificação entra porque compõe a base
+   * de IRPJ/CSLL, mesmo sem receita efetiva.
    *
    * A Remessa transporte fica de fora:
    * ela é a entrega das notas filhas da
@@ -615,6 +634,7 @@ export function TaxSummaryTable({
   const valorConsolidado =
     valorVendas +
     valorDevolucoes +
+    valorBonificados +
     valorInternoObras +
     valorRemessaFutura;
 
@@ -646,6 +666,21 @@ export function TaxSummaryTable({
     safeNumber(
       kpis.interno_obras
         ?.custo_total,
+    );
+
+  /*
+   * BONIFICADOS:
+   *
+   * o contrário da devolução.
+   *
+   * A mercadoria sai e não volta, então o
+   * custo soma em vez de estornar.
+   */
+
+  const custoBonificados =
+    safeNumber(
+      kpis.bonificados
+        ?.custo_medio_sem_icms_total,
     );
 
   const custoRemessaFutura =
@@ -684,35 +719,47 @@ export function TaxSummaryTable({
   const custoEntregueRemessaTransporte =
     custoRemessaTransporte;
 
+  const custoEntregueBonificados =
+    custoBonificados;
+
   const custoEntregueConsolidado =
     custoEntregueVendas +
     custoEntregueDevolucoes +
     custoEntregueInternoObras +
+    custoEntregueBonificados +
     custoEntregueRemessaTransporte;
 
   /*
    * VALOR CUSTO (coluna):
    *
-   * Só permanece o custo que ainda não
-   * foi baixado por entrega, ou seja,
-   * a Remessa futura.
+   * Custo total da nota, seja remessa ou não.
    *
-   * Para exibir o custo total da operação
-   * no consolidado, use:
+   * As três colunas respondem coisas
+   * diferentes:
    *
-   * custoVendas +
-   * custoInternoObras +
-   * custoRemessaFutura
+   * - Valor custo: quanto a operação custou
+   * - Custo entregue: quanto já saiu
+   * - Saldo custo: quanto falta sair
+   *
+   * A Remessa transporte não tem custo próprio:
+   * ela apenas entrega o custo que já está na
+   * Remessa futura.
    */
 
   const custoConsolidado =
+    custoVendas +
+    custoEntregueDevolucoes +
+    custoBonificados +
+    custoInternoObras +
     custoRemessaFutura;
 
   /*
    * SALDO DE CUSTO POR LINHA:
    *
-   * Vendas e Interno Obras já entregaram
-   * todo o custo, logo saldo zero.
+   * Valor custo menos custo entregue.
+   *
+   * Vendas, Devoluções, Bonificações e Interno
+   * Obras entregam no ato, logo saldo zero.
    *
    * Remessa futura carrega o custo pendente
    * e a Remessa transporte abate esse custo
@@ -735,6 +782,17 @@ export function TaxSummaryTable({
     calculateSaldoCusto(
       custoInternoObras,
       custoEntregueInternoObras,
+    );
+
+  /*
+   * A bonificação entrega no ato, então não
+   * sobra saldo.
+   */
+
+  const saldoCustoBonificados =
+    calculateSaldoCusto(
+      custoBonificados,
+      custoEntregueBonificados,
     );
 
   const saldoCustoRemessaFutura =
@@ -762,6 +820,9 @@ export function TaxSummaryTable({
           saldoCustoInternoObras,
         ) +
         safeNumber(
+          saldoCustoBonificados,
+        ) +
+        safeNumber(
           saldoCustoRemessaFutura,
         ) +
         safeNumber(
@@ -776,11 +837,13 @@ export function TaxSummaryTable({
    * APLICA-SE:
    * - Vendas
    * - Devoluções, subtraindo
+   * - Bonificações
    * - Interno Obras
    * - Remessa futura
    *
    * NÃO SE APLICA:
-   * - Remessa transporte
+   * - Remessa transporte, que apenas entrega
+   *   o que já foi faturado
    */
 
   const irpjCsslVendas =
@@ -797,6 +860,11 @@ export function TaxSummaryTable({
       ),
     );
 
+  const irpjCsslBonificados =
+    calculateIrpjCssl(
+      valorBonificados,
+    );
+
   const irpjCsslInternoObras =
     calculateIrpjCssl(
       valorInternoObras,
@@ -810,6 +878,7 @@ export function TaxSummaryTable({
   const irpjCsslConsolidado =
     irpjCsslVendas +
     irpjCsslDevolucoes +
+    irpjCsslBonificados +
     irpjCsslInternoObras +
     irpjCsslRemessaFutura;
 
@@ -854,10 +923,74 @@ export function TaxSummaryTable({
     ...emptyTaxGroup,
   };
 
-  const impostosConsolidado =
+  /*
+   * O ICMS da bonificação é pago pela
+   * empresa, então entra como imposto real.
+   */
+
+  const impostosBonificados =
+    normalizeTaxGroup({
+      icms: safeNumber(
+        kpis.bonificados?.valor_icms,
+      ),
+
+      pis: safeNumber(
+        kpis.bonificados?.valor_pis,
+      ),
+
+      cofins: safeNumber(
+        kpis.bonificados?.valor_cofins,
+      ),
+
+      federais: 0,
+
+      total_tributos: safeNumber(
+        kpis.bonificados?.valor_impostos,
+      ),
+
+      comissao: safeNumber(
+        kpis.bonificados?.valor_comissao,
+      ),
+    });
+
+  /*
+   * O consolidado do backend ainda não
+   * considera os bonificados, então somamos
+   * aqui para a coluna fechar.
+   */
+
+  const impostosConsolidadoBackend =
     normalizeTaxGroup(
       impostos.consolidado_liquido,
     );
+
+  const impostosConsolidado: ImpostoGrupoKpis =
+    {
+      icms:
+        impostosConsolidadoBackend.icms +
+        impostosBonificados.icms,
+
+      pis:
+        impostosConsolidadoBackend.pis +
+        impostosBonificados.pis,
+
+      cofins:
+        impostosConsolidadoBackend.cofins +
+        impostosBonificados.cofins,
+
+      federais:
+        impostosConsolidadoBackend.federais +
+        impostosBonificados.federais,
+
+      total_tributos:
+        impostosConsolidadoBackend
+          .total_tributos +
+        impostosBonificados.total_tributos,
+
+      comissao:
+        impostosConsolidadoBackend.comissao +
+        impostosBonificados.comissao,
+    };
 
   const rows: TaxTableRow[] = [
     {
@@ -867,7 +1000,7 @@ export function TaxSummaryTable({
       valor: valorVendas,
 
       valorCusto:
-        null,
+        custoVendas,
 
       valorCustoEntregue:
         custoEntregueVendas,
@@ -890,7 +1023,7 @@ export function TaxSummaryTable({
         valorDevolucoes,
 
       valorCusto:
-        null,
+        custoEntregueDevolucoes,
 
       valorCustoEntregue:
         custoEntregueDevolucoes,
@@ -908,6 +1041,30 @@ export function TaxSummaryTable({
     },
 
     {
+      key: 'bonificados',
+      label: 'Bonificações',
+
+      valor: valorBonificados,
+
+      valorCusto:
+        custoBonificados,
+
+      valorCustoEntregue:
+        custoEntregueBonificados,
+
+      saldoCusto:
+        saldoCustoBonificados,
+
+      impostos:
+        impostosBonificados,
+
+      irpjCssl:
+        irpjCsslBonificados,
+
+      bonificado: true,
+    },
+
+    {
       key: 'interno_obras',
       label: 'Interno Obras',
 
@@ -915,7 +1072,7 @@ export function TaxSummaryTable({
         valorInternoObras,
 
       valorCusto:
-        null,
+        custoInternoObras,
 
       valorCustoEntregue:
         custoEntregueInternoObras,
@@ -1598,9 +1755,12 @@ export function TaxSummaryTable({
                                   .negative
                               : consolidated
                                 ? '#4f6edb'
-                                : row.remessa
-                                  ? '#0284c7'
-                                  : '#cbd5e1',
+                                : row.bonificado
+                                  ? taxColors
+                                      .bonificado
+                                  : row.remessa
+                                    ? '#0284c7'
+                                    : '#cbd5e1',
                         }}
                       />
 
@@ -1646,17 +1806,26 @@ export function TaxSummaryTable({
 
                       {row.entrega ? (
                         <Chip
-                          label="NÃO SOMA VALOR"
+                          label={
+                            row.bonificado
+                              ? 'SÓ CUSTO'
+                              : 'NÃO SOMA VALOR'
+                          }
                           size="small"
                           sx={{
                             height: 21,
                             ml: 0.4,
 
                             color:
-                              '#0284c7',
+                              row.bonificado
+                                ? taxColors
+                                    .bonificado
+                                : '#0284c7',
 
                             backgroundColor:
-                              'rgba(2, 132, 199, 0.10)',
+                              row.bonificado
+                                ? 'rgba(201, 106, 22, 0.10)'
+                                : 'rgba(2, 132, 199, 0.10)',
 
                             fontSize:
                               '0.60rem',

@@ -21,10 +21,32 @@ export interface InternoObrasKpis {
   resultado_apos_custo: number;
 }
 
-export interface BonificadosKpis {
-  total: number;
-  custo_total: number;
-  resultado_apos_custo?: number;
+/*
+ * Resumo de notas no formato que o backend
+ * devolve para compras e bonificados.
+ */
+export interface NotasResumoKpis {
+  quantidade_notas: number;
+
+  valor_nota: number;
+
+  valor_icms: number;
+  valor_pis: number;
+  valor_cofins: number;
+  valor_impostos: number;
+
+  perc_gasto_fixo: number;
+  perc_irpj_cssl: number;
+  perc_comissao: number;
+
+  valor_gasto_fixo: number;
+  valor_irpj_cssl: number;
+  valor_comissao: number;
+
+  valor_gasto_total: number;
+  valor_liquido: number;
+
+  custo_medio_sem_icms_total: number;
 }
 
 export interface RemessaFuturaKpis {
@@ -65,11 +87,8 @@ export interface DashboardKpis {
   vendas: VendasKpis;
   interno_obras: InternoObrasKpis;
 
-  /*
-   * Opcional enquanto o backend não envia
-   * os KPIs de bonificados.
-   */
-  bonificados?: BonificadosKpis;
+  compras?: NotasResumoKpis;
+  bonificados?: NotasResumoKpis;
 
   remessa_futura: RemessaFuturaKpis;
   impostos: ImpostosKpis;

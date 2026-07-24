@@ -26,19 +26,19 @@ interface SummarySectionProps {
   kpis: DashboardKpis;
 }
 
-interface ConsolidatedMetricProps {
-  title: string;
-  value: number;
-  helper: string;
-  icon: ReactNode;
-  color: string;
-  backgroundColor: string;
-  delayStep?: number;
-}
-
 interface ChargesMetricProps {
   taxes: number;
   commission: number;
+}
+
+interface CostBreakdownMetricProps {
+  title: string;
+  operations: number;
+  bonus: number;
+  total: number;
+  icon: ReactNode;
+  color: string;
+  backgroundColor: string;
 }
 
 interface BonusBubbleProps {
@@ -228,7 +228,7 @@ function BonusBubble({
 
           '&:hover': {
             boxShadow:
-              '0 16px 38px rgba(180, 102, 13, 0.28), ' +
+              '0 16px 38px rgba(221, 127, 19, 0.28), ' +
               '0 3px 8px rgba(15, 23, 42, 0.06)',
           },
 
@@ -330,15 +330,23 @@ function BonusBubble({
   );
 }
 
-function ConsolidatedMetric({
+/*
+ * Total de custo com a parcela de bonificação
+ * separada.
+ *
+ * A bonificação é custo puro: sai do estoque
+ * e não tem receita nem abatimento, por isso
+ * aparece somando à parte.
+ */
+function CostBreakdownMetric({
   title,
-  value,
-  helper,
+  operations,
+  bonus,
+  total,
   icon,
   color,
   backgroundColor,
-  delayStep = 70,
-}: ConsolidatedMetricProps) {
+}: CostBreakdownMetricProps) {
   return (
     <Box
       sx={{
@@ -431,48 +439,156 @@ function ConsolidatedMetric({
           {title}
         </Typography>
 
-        <Typography
-          component="div"
+        <Box
           sx={{
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(2, minmax(0, 1fr))',
+
+            gap: 1.25,
+
             mt: 0.35,
-
-            color,
-
-            fontSize: {
-              xs: '1.05rem',
-              md: '1.12rem',
-            },
-
-            lineHeight: 1.2,
-            fontWeight: 900,
-            letterSpacing: '-0.025em',
-            whiteSpace: 'nowrap',
           }}
         >
-          <RollingCurrency
-            value={value}
-            delayStep={delayStep}
-          />
-        </Typography>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
 
-        <Typography
-          variant="caption"
+                color,
+
+                fontSize: '0.63rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Operações
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.2,
+
+                color,
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.06rem',
+                },
+
+                lineHeight: 1.2,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={operations}
+                delayStep={60}
+              />
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: 0,
+
+              pl: 1.25,
+
+              borderLeft:
+                '1px solid rgba(148, 163, 184, 0.22)',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                color: '#C96A16',
+
+                fontSize: '0.63rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}
+            >
+              + Bonificado
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.2,
+
+                color: '#C96A16',
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.06rem',
+                },
+
+                lineHeight: 1.2,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={bonus}
+                delayStep={60}
+              />
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box
           sx={{
-            display: 'block',
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: 0.7,
 
             mt: 'auto',
-            pt: 0.55,
-
-            color: '#94a3b8',
-
-            fontSize: '0.68rem',
-            fontWeight: 600,
-
-            lineHeight: 1.35,
+            pt: 0.65,
           }}
         >
-          {helper}
-        </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              color: '#94a3b8',
+
+              fontSize: '0.66rem',
+              fontWeight: 700,
+
+              letterSpacing: '0.03em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Total
+          </Typography>
+
+          <Typography
+            component="div"
+            sx={{
+              color: '#0f172a',
+
+              fontSize: '1rem',
+              lineHeight: 1.2,
+              fontWeight: 900,
+              letterSpacing: '-0.025em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <RollingCurrency
+              value={total}
+              delayStep={70}
+            />
+          </Typography>
+        </Box>
       </Box>
     </Box>
   );
@@ -735,44 +851,67 @@ export function SummarySection({
    */
 
   const totalBonificados =
-    kpis.bonificados?.total ?? 0;
+    kpis.bonificados?.valor_nota ?? 0;
 
   const custoBonificados =
-    kpis.bonificados?.custo_total ?? 0;
+    kpis.bonificados
+      ?.custo_medio_sem_icms_total ?? 0;
 
   /*
-   * TOTAL DE CUSTO:
+   * CUSTO DAS OPERAÇÕES:
    *
    * Custo da remessa
    * + custo das vendas normais
    * + custo do Interno Obras
-   * + custo dos bonificados
    * - custo das devoluções
    *
    * O custo entregue da remessa não entra
    * aqui porque já faz parte do custo total
    * dela, senão a remessa contaria duas vezes.
    */
-  const totalCusto =
+  const custoOperacoes =
     custoRemessa +
     custoVendas +
-    custoInternoObras +
-    custoBonificados -
+    custoInternoObras -
+    custoDevolucoes;
+
+  /*
+   * TOTAL DE CUSTO:
+   *
+   * Operações + bonificados.
+   *
+   * A bonificação entra somando porque é
+   * custo puro, sem receita e sem abatimento.
+   */
+  const totalCusto =
+    custoOperacoes + custoBonificados;
+
+  /*
+   * CUSTO ENTREGUE DAS OPERAÇÕES:
+   *
+   * Vendas e Interno Obras saem no ato, a
+   * devolução volta para o estoque e abate,
+   * e a remessa entra apenas com o que já
+   * foi entregue.
+   *
+   * Bate com o consolidado da coluna
+   * "Custo entregue" da tabela de tributos.
+   */
+  const custoEntregueOperacoes =
+    custoRemessaEntregue +
+    custoVendas +
+    custoInternoObras -
     custoDevolucoes;
 
   /*
    * TOTAL DE CUSTO ENTREGUE:
    *
-   * Vendas, Interno Obras e bonificados saem
-   * no ato, a devolução estorna e a remessa
-   * entra apenas com o que já foi entregue.
+   * Operações + bonificados, já que a
+   * bonificação também sai no ato.
    */
   const totalCustoEntregue =
-    custoRemessaEntregue +
-    custoVendas +
-    custoInternoObras +
-    custoBonificados -
-    custoDevolucoes;
+    custoEntregueOperacoes +
+    custoBonificados;
 
   /*
    * SALDO DE CUSTOS:
@@ -1150,23 +1289,24 @@ export function SummarySection({
             </Box>
           </Box>
 
-          <ConsolidatedMetric
+          <CostBreakdownMetric
             title="Total custo"
-            value={totalCusto}
-            helper="Remessa, vendas, Interno Obras e bonificados, sem as devoluções"
+            operations={custoOperacoes}
+            bonus={custoBonificados}
+            total={totalCusto}
             icon={<PriceCheckOutlinedIcon />}
             color="#FF746D"
             backgroundColor="rgba(255, 116, 109, 0.07)"
           />
 
-          <ConsolidatedMetric
+          <CostBreakdownMetric
             title="Total custo entregue"
-            value={totalCustoEntregue}
-            helper="Custo referente aos materiais entregues"
+            operations={custoEntregueOperacoes}
+            bonus={custoBonificados}
+            total={totalCustoEntregue}
             icon={<Inventory2OutlinedIcon />}
             color="#4EAAEF"
             backgroundColor="rgba(78, 170, 239, 0.07)"
-            delayStep={80}
           />
 
           <ChargesMetric
