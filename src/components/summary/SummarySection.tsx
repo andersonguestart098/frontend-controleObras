@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
-import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
-import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
+import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
+import MoneyOffCsredOutlinedIcon from '@mui/icons-material/MoneyOffCsredOutlined';
 import CardGiftcardOutlinedIcon from '@mui/icons-material/CardGiftcardOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
@@ -10,6 +10,7 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import PriceCheckOutlinedIcon from '@mui/icons-material/PriceCheckOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
+import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
 import {
   Box,
   Card,
@@ -270,7 +271,7 @@ function BonusBubble({
             gap: 0.7,
           }}
         >
-          <CardGiftcardOutlinedIcon
+          <MoneyOffCsredOutlinedIcon
             sx={{
               fontSize: 17,
               color: BUBBLE_COLOR,
@@ -992,7 +993,7 @@ export function SummarySection({
             custoRemessa,
           )}`}
           subtitleColor="#FF746D"
-          icon={<Inventory2OutlinedIcon />}
+          icon={<PaymentsOutlinedIcon />}
           tone="primary"
           rollDelay={0}
         />
@@ -1022,7 +1023,7 @@ export function SummarySection({
           )}`}
           subtitleColor="#C18D34"
           icon={
-            <AccountBalanceWalletOutlinedIcon />
+            <PaidOutlinedIcon />
           }
           tone="warning"
           rollDelay={140}
@@ -1048,7 +1049,7 @@ export function SummarySection({
           )}`}
           subtitleColor="#4EAAEF"
           icon={
-            <BusinessCenterOutlinedIcon />
+            <HandymanOutlinedIcon />
           }
           tone="secondary"
           rollDelay={280}
@@ -1070,7 +1071,7 @@ export function SummarySection({
             )}`}
             subtitleColor="#FF746D"
             icon={
-              <AssignmentReturnOutlinedIcon />
+              <MoneyOffCsredOutlinedIcon />
             }
             tone="error"
             rollDelay={350}
@@ -1241,7 +1242,7 @@ export function SummarySection({
                   },
                 }}
               >
-                <SavingsOutlinedIcon />
+                <PaidOutlinedIcon />
               </Box>
             </Box>
 
