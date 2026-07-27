@@ -741,7 +741,7 @@ function CheckboxFilterHeader({
                   movementColors.filter,
 
                 backgroundColor:
-                  'rgba(0, 149, 255, 0.12)',
+                  '#0095FF',
               },
             }}
           >
@@ -802,7 +802,7 @@ function CheckboxFilterHeader({
             sx={{
               mb: 1.2,
 
-              color: '#0f172a',
+              color: '#0095FF',
 
               fontSize: '0.84rem',
               fontWeight: 900,
@@ -2219,16 +2219,28 @@ export function MovimentosAuditTable({
                   '1px solid rgba(148, 163, 184, 0.16)',
               },
 
-            '& .MuiDataGrid-toolbarContainer':
-              {
-                px: 1.5,
-                py: 1.2,
+            '& .MuiDataGrid-toolbarContainer': {
+              px: 1.5,
+              py: 1.2,
+              gap: 1,
 
-                gap: 1,
+              borderBottom:
+                '1px solid rgba(148, 163, 184, 0.14)',
+            },
 
-                borderBottom:
-                  '1px solid rgba(148, 163, 184, 0.14)',
+            '& .MuiDataGrid-toolbarQuickFilter .MuiOutlinedInput-root': {
+              '& fieldset': {
+                borderColor: '#0095FF',
               },
+
+              '&:hover fieldset': {
+                borderColor: '#0095FF',
+              },
+
+              '&.Mui-focused fieldset': {
+                borderColor: '#0095FF',
+              },
+            },
           }}
         />
       </Box>
