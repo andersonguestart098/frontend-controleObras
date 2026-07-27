@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 
-import FormatListNumberedRtlOutlinedIcon from '@mui/icons-material/FormatListNumberedRtlOutlined';
 import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 import MoneyOffCsredOutlinedIcon from '@mui/icons-material/MoneyOffCsredOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
@@ -12,6 +11,7 @@ import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
 import {
   Box,
   Card,
+  CardContent,
   Chip,
   Typography,
 } from '@mui/material';
@@ -46,7 +46,27 @@ interface BonusBubbleProps {
   rollDelay?: number;
 }
 
+interface ReturnsBreakdownCardProps {
+  salesReturns: number;
+  internalReturns: number;
+
+  salesReturnCost: number;
+  internalReturnCost: number;
+
+  totalReturns: number;
+  totalReturnCost: number;
+
+  rollDelay?: number;
+}
+
 const BUBBLE_COLOR = '#C96A16';
+
+/*
+ * Mesma alíquota usada na tabela de
+ * "Tributos, custos e comissão" para o
+ * IRPJ/CSLL sobre o valor de cada origem.
+ */
+const IRPJ_CSSL_RATE = 0.0335;
 
 /*
  * Rastro de bolhas subindo pela direita do
@@ -326,6 +346,330 @@ function BonusBubble({
         </Typography>
       </Box>
     </>
+  );
+}
+
+
+/*
+ * Card compacto de devoluções.
+ *
+ * Mantém a mesma área do KPI original, mas
+ * separa as devoluções de vendas das devoluções
+ * de Interno Obras e apresenta os totais no rodapé.
+ */
+function ReturnsBreakdownCard({
+  salesReturns,
+  internalReturns,
+
+  salesReturnCost,
+  internalReturnCost,
+
+  totalReturns,
+  totalReturnCost,
+
+  rollDelay = 350,
+}: ReturnsBreakdownCardProps) {
+  return (
+    <Card
+      sx={{
+        height: '100%',
+        minHeight: 155,
+
+        borderRadius: 2.5,
+        border: 'none',
+
+        backgroundColor: '#ffffff',
+
+        boxShadow:
+          '0 3px 10px rgba(15, 23, 42, 0.07), ' +
+          '0 12px 30px rgba(15, 23, 42, 0.06)',
+
+        transition:
+          'transform 180ms ease, box-shadow 180ms ease',
+
+        '&:hover': {
+          transform: 'translateY(-3px)',
+
+          boxShadow:
+            '0 7px 20px rgba(15, 23, 42, 0.11), ' +
+            '0 18px 38px rgba(15, 23, 42, 0.08)',
+        },
+      }}
+    >
+      <CardContent
+        sx={{
+          height: '100%',
+
+          display: 'flex',
+          flexDirection: 'column',
+
+          p: 2.25,
+
+          '&:last-child': {
+            pb: 2.25,
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 1.25,
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'text.secondary',
+
+              fontWeight: 700,
+              lineHeight: 1.25,
+            }}
+          >
+            Devoluções
+          </Typography>
+
+          <Box
+            sx={{
+              width: 38,
+              height: 38,
+
+              display: 'grid',
+              placeItems: 'center',
+
+              flexShrink: 0,
+
+              borderRadius: 2,
+
+              color: '#dc2626',
+
+              backgroundColor:
+                'rgba(220, 38, 38, 0.10)',
+
+              '& svg': {
+                fontSize: 21,
+              },
+            }}
+          >
+            <MoneyOffCsredOutlinedIcon />
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(2, minmax(0, 1fr))',
+
+            gap: 1,
+
+            mt: 0.5,
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                color: '#64748b',
+
+                fontSize: '0.62rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Devoluções
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.15,
+
+                color: '#0f172a',
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.05rem',
+                },
+
+                lineHeight: 1.15,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={salesReturns}
+                startDelay={rollDelay}
+                delayStep={55}
+              />
+            </Typography>
+
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                mt: 0.3,
+
+                color: '#FF746D',
+
+                fontSize: '0.64rem',
+                fontWeight: 750,
+                lineHeight: 1.2,
+              }}
+            >
+              Custo {formatCurrency(salesReturnCost)}
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: 0,
+
+              pl: 1,
+
+              borderLeft:
+                '1px solid rgba(148, 163, 184, 0.20)',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                color: '#64748b',
+
+                fontSize: '0.62rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Interno Obras
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.15,
+
+                color: '#0f172a',
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.05rem',
+                },
+
+                lineHeight: 1.15,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={internalReturns}
+                startDelay={rollDelay + 70}
+                delayStep={55}
+              />
+            </Typography>
+
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                mt: 0.3,
+
+                color: '#FF746D',
+
+                fontSize: '0.64rem',
+                fontWeight: 750,
+                lineHeight: 1.2,
+              }}
+            >
+              Custo {formatCurrency(internalReturnCost)}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            mt: 'auto',
+            pt: 0.8,
+
+            borderTop:
+              '1px solid rgba(148, 163, 184, 0.16)',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              gap: 1,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                color: '#94a3b8',
+
+                fontSize: '0.62rem',
+                fontWeight: 800,
+
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Total
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                color: '#dc2626',
+
+                fontSize: '0.95rem',
+                lineHeight: 1.1,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={totalReturns}
+                startDelay={rollDelay + 140}
+                delayStep={60}
+              />
+            </Typography>
+          </Box>
+
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+
+              mt: 0.2,
+
+              color: '#FF746D',
+
+              fontSize: '0.64rem',
+              fontWeight: 750,
+              textAlign: 'right',
+            }}
+          >
+            Custo total {formatCurrency(totalReturnCost)}
+          </Typography>
+        </Box>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -824,14 +1168,42 @@ export function SummarySection({
   kpis,
 }: SummarySectionProps) {
   /*
-   * CUSTOS POR ORIGEM
+   * REMESSAS
+   *
+   * A Remessa futura continua representando
+   * o faturamento principal.
+   *
+   * Valor entregue, custo entregue e tributos
+   * vêm exclusivamente de remessa_transporte,
+   * alimentada pelas notas TOP 1157.
    */
+
+  const valorRemessaFutura =
+    kpis.remessa_futura.total_faturamento;
+
+  const valorRemessaTransporte =
+    kpis.remessa_transporte?.valor_nota ?? 0;
+
+  const saldoRemessa =
+    valorRemessaFutura -
+    valorRemessaTransporte;
 
   const custoRemessa =
     kpis.remessa_futura.custo_total;
 
   const custoRemessaEntregue =
-    kpis.remessa_futura.custo_entregue;
+    kpis.remessa_transporte
+      ?.custo_medio_sem_icms_total ??
+    kpis.remessa_transporte?.custo_total ??
+    0;
+
+  const saldoCustoRemessa =
+    custoRemessa -
+    custoRemessaEntregue;
+
+  /*
+   * CUSTOS POR ORIGEM
+   */
 
   const custoVendas =
     kpis.vendas.custo_total;
@@ -839,8 +1211,46 @@ export function SummarySection({
   const custoDevolucoes =
     kpis.vendas.custo_devolucoes;
 
+  const custoDevolucoesInternoObras =
+    kpis.devolucoes_interno_obras
+      ?.custo_total ?? 0;
+
+  const custoTotalDevolucoes =
+    custoDevolucoes +
+    custoDevolucoesInternoObras;
+
+  /*
+   * O KPI principal de Interno Obras é líquido.
+   *
+   * Para montar o consolidado sem descontar a
+   * devolução duas vezes, usamos o custo bruto e
+   * abatemos as duas categorias logo abaixo.
+   */
+
+  const custoInternoObrasBruto =
+    kpis.interno_obras.custo_bruto ??
+    (
+      kpis.interno_obras.custo_total +
+      custoDevolucoesInternoObras
+    );
+
   const custoInternoObras =
     kpis.interno_obras.custo_total;
+
+  /*
+   * DEVOLUÇÕES
+   */
+
+  const totalDevolucoes =
+    kpis.vendas.total_devolucoes;
+
+  const totalDevolucoesInternoObras =
+    kpis.devolucoes_interno_obras
+      ?.total ?? 0;
+
+  const totalGeralDevolucoes =
+    totalDevolucoes +
+    totalDevolucoesInternoObras;
 
   /*
    * BONIFICADOS:
@@ -859,55 +1269,46 @@ export function SummarySection({
   /*
    * CUSTO DAS OPERAÇÕES:
    *
-   * Custo da remessa
+   * Custo da remessa futura
    * + custo das vendas normais
-   * + custo do Interno Obras
-   * - custo das devoluções
+   * + custo bruto do Interno Obras
+   * - devoluções normais
+   * - devoluções de Interno Obras
    *
-   * O custo entregue da remessa não entra
-   * aqui porque já faz parte do custo total
-   * dela, senão a remessa contaria duas vezes.
+   * O custo entregue da Remessa transporte não
+   * entra aqui porque já faz parte do custo total
+   * da Remessa futura.
    */
+
   const custoOperacoes =
     custoRemessa +
     custoVendas +
-    custoInternoObras -
-    custoDevolucoes;
+    custoInternoObrasBruto -
+    custoTotalDevolucoes;
 
   /*
    * TOTAL DE CUSTO:
    *
    * Operações + bonificados.
-   *
-   * A bonificação entra somando porque é
-   * custo puro, sem receita e sem abatimento.
    */
+
   const totalCusto =
-    custoOperacoes + custoBonificados;
+    custoOperacoes +
+    custoBonificados;
 
   /*
    * CUSTO ENTREGUE DAS OPERAÇÕES:
    *
-   * Vendas e Interno Obras saem no ato, a
-   * devolução volta para o estoque e abate,
-   * e a remessa entra apenas com o que já
-   * foi entregue.
-   *
-   * Bate com o consolidado da coluna
-   * "Custo entregue" da tabela de tributos.
+   * A parcela de remessa entregue vem da consulta
+   * remessas_transporte, sem usar itens_remessas.
    */
+
   const custoEntregueOperacoes =
     custoRemessaEntregue +
     custoVendas +
-    custoInternoObras -
-    custoDevolucoes;
+    custoInternoObrasBruto -
+    custoTotalDevolucoes;
 
-  /*
-   * TOTAL DE CUSTO ENTREGUE:
-   *
-   * Operações + bonificados, já que a
-   * bonificação também sai no ato.
-   */
   const totalCustoEntregue =
     custoEntregueOperacoes +
     custoBonificados;
@@ -915,15 +1316,90 @@ export function SummarySection({
   /*
    * SALDO DE CUSTOS:
    *
-   * O que ainda não foi baixado por entrega.
-   * Confere com kpis.remessa_futura.saldo_custo.
+   * Total de custo menos o custo já entregue.
    */
+
   const saldoCustos =
-    totalCusto - totalCustoEntregue;
+    totalCusto -
+    totalCustoEntregue;
+
+  /*
+   * ENCARGOS CONSOLIDADOS
+   *
+   * O consolidado do backend contém os tributos
+   * da Remessa futura. A Remessa transporte abate
+   * os tributos reais das notas TOP 1157.
+   *
+   * A bonificação soma seu imposto real.
+   */
+
+  const impostosRemessaTransporte =
+    kpis.remessa_transporte
+      ?.valor_impostos ?? 0;
+
+  const impostosBonificados =
+    kpis.bonificados
+      ?.valor_impostos ?? 0;
+
+  /*
+   * IRPJ/CSLL = 3,35% sobre o valor de cada
+   * origem, igual ao cálculo feito na tabela
+   * "Tributos, custos e comissão".
+   *
+   * A Remessa transporte não soma IRPJ/CSLL
+   * aqui pela mesma razão da tabela: ela é
+   * a entrega da Remessa futura, cujo valor
+   * já foi tributado acima.
+   */
+
+  const valorInternoObrasBruto =
+    kpis.interno_obras.total_bruto ??
+    kpis.interno_obras.total;
+
+  const irpjCsslVendas =
+    kpis.vendas.total_vendas *
+    IRPJ_CSSL_RATE;
+
+  const irpjCsslDevolucoes =
+    -(
+      totalDevolucoes *
+      IRPJ_CSSL_RATE
+    );
+
+  const irpjCsslBonificados =
+    totalBonificados *
+    IRPJ_CSSL_RATE;
+
+  const irpjCsslInternoObras =
+    valorInternoObrasBruto *
+    IRPJ_CSSL_RATE;
+
+  const irpjCsslDevolucoesInternoObras =
+    -(
+      kpis.devolucoes_interno_obras
+        ?.irpj_cssl ??
+      totalDevolucoesInternoObras *
+        IRPJ_CSSL_RATE
+    );
+
+  const irpjCsslRemessaFutura =
+    valorRemessaFutura *
+    IRPJ_CSSL_RATE;
+
+  const totalIrpjCssl =
+    irpjCsslVendas +
+    irpjCsslDevolucoes +
+    irpjCsslBonificados +
+    irpjCsslInternoObras +
+    irpjCsslDevolucoesInternoObras +
+    irpjCsslRemessaFutura;
 
   const totalImpostos =
     kpis.impostos.consolidado_liquido
-      .total_tributos;
+      .total_tributos +
+    impostosBonificados -
+    impostosRemessaTransporte +
+    totalIrpjCssl;
 
   const totalComissao =
     kpis.impostos.consolidado_liquido
@@ -983,10 +1459,7 @@ export function SummarySection({
       >
         <KpiCard
           title="Faturamento remessas"
-          value={
-            kpis.remessa_futura
-              .total_faturamento
-          }
+          value={valorRemessaFutura}
           subtitle={`Custo: ${formatCurrency(
             custoRemessa,
           )}`}
@@ -998,10 +1471,7 @@ export function SummarySection({
 
         <KpiCard
           title="Entregas remessa futura"
-          value={
-            kpis.remessa_futura
-              .total_entregue
-          }
+          value={valorRemessaTransporte}
           subtitle={`Custo entregue: ${formatCurrency(
             custoRemessaEntregue,
           )}`}
@@ -1015,9 +1485,9 @@ export function SummarySection({
 
         <KpiCard
           title="Saldo remessa"
-          value={kpis.remessa_futura.saldo}
+          value={saldoRemessa}
           subtitle={`Saldo custo: ${formatCurrency(
-            kpis.remessa_futura.saldo_custo,
+            saldoCustoRemessa,
           )}`}
           subtitleColor="#C18D34"
           icon={
@@ -1059,19 +1529,23 @@ export function SummarySection({
             cost={custoBonificados}
           />
 
-          <KpiCard
-            title="Devoluções"
-            value={
-              kpis.vendas.total_devolucoes
+          <ReturnsBreakdownCard
+            salesReturns={totalDevolucoes}
+            internalReturns={
+              totalDevolucoesInternoObras
             }
-            subtitle={`Custo estornado: ${formatCurrency(
-              custoDevolucoes,
-            )}`}
-            subtitleColor="#FF746D"
-            icon={
-              <MoneyOffCsredOutlinedIcon />
+            salesReturnCost={
+              custoDevolucoes
             }
-            tone="error"
+            internalReturnCost={
+              custoDevolucoesInternoObras
+            }
+            totalReturns={
+              totalGeralDevolucoes
+            }
+            totalReturnCost={
+              custoTotalDevolucoes
+            }
             rollDelay={350}
           />
         </Box>

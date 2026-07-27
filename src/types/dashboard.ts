@@ -2,7 +2,6 @@ export interface DashboardFilters {
   codproj: number;
   dtneg_inicial: string | null;
   dtneg_final: string | null;
-  nunota: number | null;
 }
 
 export interface VendasKpis {
@@ -16,14 +15,44 @@ export interface VendasKpis {
 }
 
 export interface InternoObrasKpis {
+  total_bruto: number;
+  custo_bruto: number;
+  resultado_apos_custo_bruto: number;
+
+  total_devolucoes: number;
+  custo_devolucoes: number;
+  resultado_apos_custo_devolucoes: number;
+
   total: number;
   custo_total: number;
   resultado_apos_custo: number;
 }
 
+export interface DevolucoesInternoObrasKpis {
+  quantidade_notas: number;
+
+  total: number;
+  custo_total: number;
+  resultado_apos_custo: number;
+
+  icms: number;
+  pis: number;
+  cofins: number;
+  federais: number;
+  total_tributos: number;
+
+  gasto_fixo: number;
+  irpj_cssl: number;
+  comissao: number;
+
+  gasto_total: number;
+  valor_liquido: number;
+}
+
 /*
  * Resumo de notas no formato que o backend
- * devolve para compras e bonificados.
+ * devolve para compras, bonificados e
+ * remessa de transporte.
  */
 export interface NotasResumoKpis {
   quantidade_notas: number;
@@ -47,6 +76,7 @@ export interface NotasResumoKpis {
   valor_liquido: number;
 
   custo_medio_sem_icms_total: number;
+  custo_total?: number;
 }
 
 export interface RemessaFuturaKpis {
@@ -78,20 +108,39 @@ export interface ImpostoGrupoKpis {
 export interface ImpostosKpis {
   vendas: ImpostoGrupoKpis;
   devolucoes: ImpostoGrupoKpis;
+
   interno_obras: ImpostoGrupoKpis;
+  devolucoes_interno_obras: ImpostoGrupoKpis;
+
   remessa_futura: ImpostoGrupoKpis;
   consolidado_liquido: ImpostoGrupoKpis;
 }
 
 export interface DashboardKpis {
   vendas: VendasKpis;
+
   interno_obras: InternoObrasKpis;
+
+  devolucoes_interno_obras:
+    DevolucoesInternoObrasKpis;
 
   compras?: NotasResumoKpis;
   bonificados?: NotasResumoKpis;
 
   remessa_futura: RemessaFuturaKpis;
+
+  /*
+   * Dados reais das notas filhas TOP 1157,
+   * vindos de remessas_transporte.sql.
+   */
+  remessa_transporte: NotasResumoKpis;
+
   impostos: ImpostosKpis;
+}
+
+export interface ProjetoResumo {
+  codproj: number;
+  nome_projeto: string;
 }
 
 export interface DashboardResponse {
@@ -190,9 +239,3 @@ export interface RemessaControlResponse {
   resumo: RemessaControlResumo;
   itens: RemessaItem[];
 }
-
-export interface ProjetoResumo {
-  codproj: number;
-  nome_projeto: string;
-}
-

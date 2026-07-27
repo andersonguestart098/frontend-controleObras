@@ -56,10 +56,8 @@ export async function getMovimentos(
             filters.dtneg_inicial ?? undefined,
 
           dtneg_final:
-            filters.dtneg_final ?? undefined,
-
-          nunota:
-            filters.nunota ?? undefined,
+            filters.dtneg_final ?? undefined
+            
         },
       },
     );

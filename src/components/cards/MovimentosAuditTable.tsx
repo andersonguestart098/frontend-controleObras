@@ -66,6 +66,8 @@ interface MovimentosAuditTableProps {
 type TipoMovimentoExibicao =
   | 'VENDA'
   | 'DEVOLUCAO'
+  | 'INTERNO_OBRAS'
+  | 'DEVOLUCAO_INTERNO_OBRAS'
   | 'PEDIDO_MAE'
   | 'OUTRO';
 
@@ -158,6 +160,10 @@ interface CheckboxFilterHeaderProps {
 const movementColors = {
   venda: '#0f766e',
   devolucao: '#dc2626',
+
+  internoObras: '#7c3aed',
+  devolucaoInternoObras: '#c2410c',
+
   pedidoMae: '#2563eb',
   outro: '#4f6edb',
 
@@ -292,6 +298,17 @@ function getTipoMovimentoExibicao(
     return 'DEVOLUCAO';
   }
 
+  if (tipo === 'INTERNO_OBRAS') {
+    return 'INTERNO_OBRAS';
+  }
+
+  if (
+    tipo ===
+    'DEVOLUCAO_INTERNO_OBRAS'
+  ) {
+    return 'DEVOLUCAO_INTERNO_OBRAS';
+  }
+
   return 'OUTRO';
 }
 
@@ -305,6 +322,17 @@ function getMovementLabel(
 
   if (tipo === 'DEVOLUCAO') {
     return 'Devolução';
+  }
+
+  if (tipo === 'INTERNO_OBRAS') {
+    return 'Interno Obras';
+  }
+
+  if (
+    tipo ===
+    'DEVOLUCAO_INTERNO_OBRAS'
+  ) {
+    return 'Devolução Interno Obras';
   }
 
   if (tipo === 'PEDIDO_MAE') {
@@ -338,9 +366,34 @@ function getMovementChip(
     };
   }
 
+  if (tipo === 'INTERNO_OBRAS') {
+    return {
+      label: 'Interno Obras',
+      color: movementColors.internoObras,
+
+      backgroundColor:
+        'rgba(124, 58, 237, 0.10)',
+    };
+  }
+
+  if (
+    tipo ===
+    'DEVOLUCAO_INTERNO_OBRAS'
+  ) {
+    return {
+      label: 'Devolução Interno Obras',
+      color:
+        movementColors
+          .devolucaoInternoObras,
+
+      backgroundColor:
+        'rgba(194, 65, 12, 0.10)',
+    };
+  }
+
   if (tipo === 'PEDIDO_MAE') {
     return {
-      label: 'Pedido mãe - remssa',
+      label: 'Pedido mãe - remessa',
       color: movementColors.pedidoMae,
 
       backgroundColor:

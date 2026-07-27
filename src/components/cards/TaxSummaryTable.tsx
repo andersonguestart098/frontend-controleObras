@@ -35,12 +35,20 @@ interface TaxTableRow {
   impostos: ImpostoGrupoKpis;
 
   irpjCssl: number | null;
+  comissao: number | null;
 
   negative?: boolean;
   consolidated?: boolean;
   remessa?: boolean;
   entrega?: boolean;
   bonificado?: boolean;
+  internalReturn?: boolean;
+
+  /*
+   * A linha continua positiva para valor/custo,
+   * mas os encargos são exibidos como abatimento.
+   */
+  taxNegative?: boolean;
 }
 
 interface SummaryItemProps {
@@ -86,13 +94,22 @@ const emptyTaxGroup: ImpostoGrupoKpis = {
 const emptyImpostos: ImpostosKpis = {
   vendas: { ...emptyTaxGroup },
   devolucoes: { ...emptyTaxGroup },
+
   interno_obras: { ...emptyTaxGroup },
+
+  devolucoes_interno_obras: {
+    ...emptyTaxGroup,
+  },
+
   remessa_futura: { ...emptyTaxGroup },
-  consolidado_liquido: { ...emptyTaxGroup },
+
+  consolidado_liquido: {
+    ...emptyTaxGroup,
+  },
 };
 
 const headerCellSx = {
-  px: 1.5,
+  px: 1.1,
   py: 2.2,
 
   color: '#64748b',
@@ -108,7 +125,7 @@ const headerCellSx = {
 };
 
 const bodyCellSx = {
-  px: 1.5,
+  px: 1.1,
   py: 2.4,
 
   color: taxColors.normal,
@@ -240,6 +257,48 @@ function negativeTaxGroup(
       normalized.comissao,
     ),
   };
+}
+
+function sumTaxGroups(
+  ...groups: Array<
+    ImpostoGrupoKpis | null | undefined
+  >
+): ImpostoGrupoKpis {
+  return groups.reduce<ImpostoGrupoKpis>(
+    (total, group) => {
+      const normalized =
+        normalizeTaxGroup(group);
+
+      return {
+        icms:
+          total.icms +
+          normalized.icms,
+
+        pis:
+          total.pis +
+          normalized.pis,
+
+        cofins:
+          total.cofins +
+          normalized.cofins,
+
+        federais:
+          total.federais +
+          normalized.federais,
+
+        total_tributos:
+          total.total_tributos +
+          normalized.total_tributos,
+
+        comissao:
+          total.comissao +
+          normalized.comissao,
+      };
+    },
+    {
+      ...emptyTaxGroup,
+    },
+  );
 }
 
 function calculateIrpjCssl(
@@ -424,11 +483,36 @@ function TaxCell({
   consolidated = false,
   negative = false,
 }: {
-  value: number;
+  value: number | null;
   color: string;
   consolidated?: boolean;
   negative?: boolean;
 }) {
+  if (value === null) {
+    return (
+      <TableCell
+        align="right"
+        sx={bodyCellSx}
+      >
+        <Chip
+          size="small"
+          label="Não se aplica"
+          sx={{
+            height: 24,
+
+            color: '#64748b',
+
+            backgroundColor:
+              'rgba(100, 116, 139, 0.09)',
+
+            fontSize: '0.68rem',
+            fontWeight: 800,
+          }}
+        />
+      </TableCell>
+    );
+  }
+
   const finalColor = negative
     ? taxColors.negative
     : consolidated
@@ -527,15 +611,35 @@ export function TaxSummaryTable({
       <Card
         component="section"
         sx={{
-          p: 3,
+          width: {
+            xs: '100%',
+            lg: 'min(1800px, calc(100vw - 32px))',
+          },
 
+          maxWidth: 'none',
+
+          position: {
+            lg: 'relative',
+          },
+
+          left: {
+            lg: '50%',
+          },
+
+          transform: {
+            lg: 'translateX(-50%)',
+          },
+
+          border: 'none',
           borderRadius: 3,
 
-          border:
-            '1px solid rgba(239, 68, 68, 0.20)',
+          backgroundColor: '#ffffff',
 
-          backgroundColor:
-            'rgba(254, 242, 242, 0.90)',
+          boxShadow:
+            '0 3px 10px rgba(15, 23, 42, 0.07), ' +
+            '0 12px 30px rgba(15, 23, 42, 0.06)',
+
+          overflow: 'hidden',
         }}
       >
         <Typography
@@ -571,9 +675,19 @@ export function TaxSummaryTable({
       ),
     );
 
-  const valorInternoObras =
+  const valorInternoObrasBruto =
     safeNumber(
+      kpis.interno_obras
+        ?.total_bruto ??
       kpis.interno_obras?.total,
+    );
+
+  const valorDevolucoesInternoObras =
+    negativeValue(
+      safeNumber(
+        kpis.devolucoes_interno_obras
+          ?.total,
+      ),
     );
 
   /*
@@ -601,13 +715,14 @@ export function TaxSummaryTable({
 
   /*
    * REMESSA TRANSPORTE:
-   * valor entregue pelas notas filhas.
+   * valor real das notas filhas TOP 1157,
+   * vindo de remessas_transporte.sql.
    */
 
   const valorRemessaTransporte =
     safeNumber(
-      kpis.remessa_futura
-        ?.total_entregue,
+      kpis.remessa_transporte
+        ?.valor_nota,
     );
 
   /*
@@ -635,7 +750,8 @@ export function TaxSummaryTable({
     valorVendas +
     valorDevolucoes +
     valorBonificados +
-    valorInternoObras +
+    valorInternoObrasBruto +
+    valorDevolucoesInternoObras +
     valorRemessaFutura;
 
   /*
@@ -662,10 +778,20 @@ export function TaxSummaryTable({
       kpis.vendas?.custo_devolucoes,
     );
 
-  const custoInternoObras =
+  const custoInternoObrasBruto =
     safeNumber(
       kpis.interno_obras
+        ?.custo_bruto ??
+      kpis.interno_obras
         ?.custo_total,
+    );
+
+  const custoDevolucoesInternoObras =
+    negativeValue(
+      safeNumber(
+        kpis.devolucoes_interno_obras
+          ?.custo_total,
+      ),
     );
 
   /*
@@ -691,8 +817,10 @@ export function TaxSummaryTable({
 
   const custoRemessaTransporte =
     safeNumber(
-      kpis.remessa_futura
-        ?.custo_entregue,
+      kpis.remessa_transporte
+        ?.custo_medio_sem_icms_total ??
+      kpis.remessa_transporte
+        ?.custo_total,
     );
 
   /*
@@ -714,7 +842,10 @@ export function TaxSummaryTable({
     negativeValue(custoDevolucoes);
 
   const custoEntregueInternoObras =
-    custoInternoObras;
+    custoInternoObrasBruto;
+
+  const custoEntregueDevolucoesInternoObras =
+    custoDevolucoesInternoObras;
 
   const custoEntregueRemessaTransporte =
     custoRemessaTransporte;
@@ -726,6 +857,7 @@ export function TaxSummaryTable({
     custoEntregueVendas +
     custoEntregueDevolucoes +
     custoEntregueInternoObras +
+    custoEntregueDevolucoesInternoObras +
     custoEntregueBonificados +
     custoEntregueRemessaTransporte;
 
@@ -750,7 +882,8 @@ export function TaxSummaryTable({
     custoVendas +
     custoEntregueDevolucoes +
     custoBonificados +
-    custoInternoObras +
+    custoInternoObrasBruto +
+    custoDevolucoesInternoObras +
     custoRemessaFutura;
 
   /*
@@ -780,8 +913,14 @@ export function TaxSummaryTable({
 
   const saldoCustoInternoObras =
     calculateSaldoCusto(
-      custoInternoObras,
+      custoInternoObrasBruto,
       custoEntregueInternoObras,
+    );
+
+  const saldoCustoDevolucoesInternoObras =
+    calculateSaldoCusto(
+      custoDevolucoesInternoObras,
+      custoEntregueDevolucoesInternoObras,
     );
 
   /*
@@ -820,6 +959,9 @@ export function TaxSummaryTable({
           saldoCustoInternoObras,
         ) +
         safeNumber(
+          saldoCustoDevolucoesInternoObras,
+        ) +
+        safeNumber(
           saldoCustoBonificados,
         ) +
         safeNumber(
@@ -841,9 +983,9 @@ export function TaxSummaryTable({
    * - Interno Obras
    * - Remessa futura
    *
-   * NÃO SE APLICA:
-   * - Remessa transporte, que apenas entrega
-   *   o que já foi faturado
+   * REMESSA TRANSPORTE:
+   * abate proporcionalmente o IRPJ/CSLL
+   * correspondente ao valor já entregue.
    */
 
   const irpjCsslVendas =
@@ -867,7 +1009,22 @@ export function TaxSummaryTable({
 
   const irpjCsslInternoObras =
     calculateIrpjCssl(
-      valorInternoObras,
+      valorInternoObrasBruto,
+    );
+
+  const irpjCsslDevolucoesInternoObras =
+    negativeValue(
+      kpis.devolucoes_interno_obras
+        ?.irpj_cssl == null
+        ? calculateIrpjCssl(
+            Math.abs(
+              valorDevolucoesInternoObras,
+            ),
+          )
+        : safeNumber(
+            kpis.devolucoes_interno_obras
+              .irpj_cssl,
+          ),
     );
 
   const irpjCsslRemessaFutura =
@@ -880,6 +1037,7 @@ export function TaxSummaryTable({
     irpjCsslDevolucoes +
     irpjCsslBonificados +
     irpjCsslInternoObras +
+    irpjCsslDevolucoesInternoObras +
     irpjCsslRemessaFutura;
 
   /*
@@ -896,9 +1054,30 @@ export function TaxSummaryTable({
       impostos.devolucoes,
     );
 
-  const impostosInternoObras =
+  const impostosInternoObrasLiquido =
     normalizeTaxGroup(
       impostos.interno_obras,
+    );
+
+  const impostosDevolucoesInternoObrasPositivos =
+    normalizeTaxGroup(
+      impostos.devolucoes_interno_obras,
+    );
+
+  /*
+   * O backend entrega Interno Obras líquido.
+   *
+   * líquido + devolução = valor bruto.
+   */
+  const impostosInternoObrasBruto =
+    sumTaxGroups(
+      impostosInternoObrasLiquido,
+      impostosDevolucoesInternoObrasPositivos,
+    );
+
+  const impostosDevolucoesInternoObras =
+    negativeTaxGroup(
+      impostos.devolucoes_interno_obras,
     );
 
   /*
@@ -912,16 +1091,50 @@ export function TaxSummaryTable({
     );
 
   /*
-   * A Remessa transporte representa apenas
-   * a entrega das notas filhas.
+   * A Remessa transporte usa os impostos reais
+   * das notas filhas TOP 1157, retornados pelo
+   * grupo próprio remessa_transporte.
    *
-   * Não repetimos os impostos para evitar
-   * duplicidade.
+   * Os valores são mantidos positivos no backend
+   * e exibidos como abatimento nesta tabela.
    */
+  const impostosRemessaTransporte =
+    negativeTaxGroup({
+      icms: safeNumber(
+        kpis.remessa_transporte
+          ?.valor_icms,
+      ),
 
-  const impostosRemessaTransporte = {
-    ...emptyTaxGroup,
-  };
+      pis: safeNumber(
+        kpis.remessa_transporte
+          ?.valor_pis,
+      ),
+
+      cofins: safeNumber(
+        kpis.remessa_transporte
+          ?.valor_cofins,
+      ),
+
+      federais:
+        safeNumber(
+          kpis.remessa_transporte
+            ?.valor_pis,
+        ) +
+        safeNumber(
+          kpis.remessa_transporte
+            ?.valor_cofins,
+        ),
+
+      total_tributos: safeNumber(
+        kpis.remessa_transporte
+          ?.valor_impostos,
+      ),
+
+      comissao: safeNumber(
+        kpis.remessa_transporte
+          ?.valor_comissao,
+      ),
+    });
 
   /*
    * O ICMS da bonificação é pago pela
@@ -948,9 +1161,7 @@ export function TaxSummaryTable({
         kpis.bonificados?.valor_impostos,
       ),
 
-      comissao: safeNumber(
-        kpis.bonificados?.valor_comissao,
-      ),
+      comissao: 0,
     });
 
   /*
@@ -959,38 +1170,18 @@ export function TaxSummaryTable({
    * aqui para a coluna fechar.
    */
 
-  const impostosConsolidadoBackend =
-    normalizeTaxGroup(
-      impostos.consolidado_liquido,
+  const impostosConsolidado =
+    sumTaxGroups(
+      impostosVendas,
+      impostosDevolucoes,
+      impostosBonificados,
+
+      impostosInternoObrasBruto,
+      impostosDevolucoesInternoObras,
+
+      impostosRemessaFutura,
+      impostosRemessaTransporte,
     );
-
-  const impostosConsolidado: ImpostoGrupoKpis =
-    {
-      icms:
-        impostosConsolidadoBackend.icms +
-        impostosBonificados.icms,
-
-      pis:
-        impostosConsolidadoBackend.pis +
-        impostosBonificados.pis,
-
-      cofins:
-        impostosConsolidadoBackend.cofins +
-        impostosBonificados.cofins,
-
-      federais:
-        impostosConsolidadoBackend.federais +
-        impostosBonificados.federais,
-
-      total_tributos:
-        impostosConsolidadoBackend
-          .total_tributos +
-        impostosBonificados.total_tributos,
-
-      comissao:
-        impostosConsolidadoBackend.comissao +
-        impostosBonificados.comissao,
-    };
 
   const rows: TaxTableRow[] = [
     {
@@ -1013,6 +1204,9 @@ export function TaxSummaryTable({
 
       irpjCssl:
         irpjCsslVendas,
+
+      comissao:
+        impostosVendas.comissao,
     },
 
     {
@@ -1036,6 +1230,9 @@ export function TaxSummaryTable({
 
       irpjCssl:
         irpjCsslDevolucoes,
+
+      comissao:
+        impostosDevolucoes.comissao,
 
       negative: true,
     },
@@ -1061,6 +1258,8 @@ export function TaxSummaryTable({
       irpjCssl:
         irpjCsslBonificados,
 
+      comissao: null,
+
       bonificado: true,
     },
 
@@ -1069,10 +1268,10 @@ export function TaxSummaryTable({
       label: 'Interno Obras',
 
       valor:
-        valorInternoObras,
+        valorInternoObrasBruto,
 
       valorCusto:
-        custoInternoObras,
+        custoInternoObrasBruto,
 
       valorCustoEntregue:
         custoEntregueInternoObras,
@@ -1081,10 +1280,42 @@ export function TaxSummaryTable({
         saldoCustoInternoObras,
 
       impostos:
-        impostosInternoObras,
+        impostosInternoObrasBruto,
 
       irpjCssl:
         irpjCsslInternoObras,
+
+      comissao:
+        impostosInternoObrasBruto.comissao,
+    },
+
+    {
+      key: 'devolucoes_interno_obras',
+      label: 'Devoluções Interno Obras',
+
+      valor:
+        valorDevolucoesInternoObras,
+
+      valorCusto:
+        custoDevolucoesInternoObras,
+
+      valorCustoEntregue:
+        custoEntregueDevolucoesInternoObras,
+
+      saldoCusto:
+        saldoCustoDevolucoesInternoObras,
+
+      impostos:
+        impostosDevolucoesInternoObras,
+
+      irpjCssl:
+        irpjCsslDevolucoesInternoObras,
+
+      comissao:
+        impostosDevolucoesInternoObras.comissao,
+
+      negative: true,
+      internalReturn: true,
     },
 
     {
@@ -1109,6 +1340,9 @@ export function TaxSummaryTable({
       irpjCssl:
         irpjCsslRemessaFutura,
 
+      comissao:
+        impostosRemessaFutura.comissao,
+
       remessa: true,
     },
 
@@ -1131,11 +1365,12 @@ export function TaxSummaryTable({
       impostos:
         impostosRemessaTransporte,
 
-      irpjCssl:
-        null,
+      irpjCssl: null,
+      comissao: null,
 
       remessa: true,
       entrega: true,
+      taxNegative: true,
     },
 
     {
@@ -1160,6 +1395,9 @@ export function TaxSummaryTable({
       irpjCssl:
         irpjCsslConsolidado,
 
+      comissao:
+        impostosConsolidado.comissao,
+
       consolidated: true,
     },
   ];
@@ -1168,7 +1406,24 @@ export function TaxSummaryTable({
     <Card
       component="section"
       sx={{
-        width: '100%',
+        width: {
+          xs: '100%',
+          lg: 'min(1800px, calc(100vw - 32px))',
+        },
+
+        maxWidth: 'none',
+
+        position: {
+          lg: 'relative',
+        },
+
+        left: {
+          lg: '50%',
+        },
+
+        transform: {
+          lg: 'translateX(-50%)',
+        },
 
         border: 'none',
         borderRadius: 3,
@@ -1298,23 +1553,13 @@ export function TaxSummaryTable({
             title="Tributos consolidados"
             value={
               impostosConsolidado
-                .total_tributos
+                .total_tributos +
+              irpjCsslConsolidado
             }
             color={
               taxColors.tributos
             }
             backgroundColor="rgba(245, 158, 11, 0.08)"
-          />
-
-          <SummaryItem
-            title="IRPJ/CSLL consolidado"
-            value={
-              irpjCsslConsolidado
-            }
-            color={
-              taxColors.irpjCssl
-            }
-            backgroundColor="rgba(147, 51, 234, 0.08)"
           />
 
           <SummaryItem
@@ -1511,7 +1756,12 @@ export function TaxSummaryTable({
         <Table
           size="small"
           sx={{
-            minWidth: 1360,
+            width: '100%',
+
+            minWidth: {
+              xs: 1360,
+              lg: 1280,
+            },
           }}
         >
           <TableHead>
@@ -1656,6 +1906,12 @@ export function TaxSummaryTable({
               const negative =
                 row.negative === true;
 
+              const internalReturn =
+                row.internalReturn === true;
+
+              const taxNegative =
+                row.taxNegative === true;
+
               /*
                * A célula fixa precisa repetir o
                * fundo da linha, senão o conteúdo
@@ -1782,7 +2038,11 @@ export function TaxSummaryTable({
 
                       {negative ? (
                         <Chip
-                          label="SUBTRAI"
+                          label={
+                            internalReturn
+                              ? 'ABATE INTERNO'
+                              : 'SUBTRAI'
+                          }
                           size="small"
                           sx={{
                             height: 21,
@@ -1826,6 +2086,29 @@ export function TaxSummaryTable({
                               row.bonificado
                                 ? 'rgba(201, 106, 22, 0.10)'
                                 : 'rgba(2, 132, 199, 0.10)',
+
+                            fontSize:
+                              '0.60rem',
+
+                            fontWeight:
+                              900,
+                          }}
+                        />
+                      ) : null}
+
+                      {taxNegative ? (
+                        <Chip
+                          label="ABATE ENCARGOS"
+                          size="small"
+                          sx={{
+                            height: 21,
+                            ml: 0.4,
+
+                            color:
+                              taxColors.negative,
+
+                            backgroundColor:
+                              'rgba(220, 38, 38, 0.09)',
 
                             fontSize:
                               '0.60rem',
@@ -1923,7 +2206,8 @@ export function TaxSummaryTable({
                       consolidated
                     }
                     negative={
-                      negative
+                      negative ||
+                      taxNegative
                     }
                   />
 
@@ -1938,7 +2222,8 @@ export function TaxSummaryTable({
                       consolidated
                     }
                     negative={
-                      negative
+                      negative ||
+                      taxNegative
                     }
                   />
 
@@ -1954,7 +2239,8 @@ export function TaxSummaryTable({
                       consolidated
                     }
                     negative={
-                      negative
+                      negative ||
+                      taxNegative
                     }
                   />
 
@@ -1966,14 +2252,21 @@ export function TaxSummaryTable({
                       consolidated
                     }
                     negative={
-                      negative
+                      negative ||
+                      taxNegative
                     }
                   />
 
                   <TaxCell
                     value={
-                      row.impostos
-                        .total_tributos
+                      consolidated
+                        ? row.impostos
+                            .total_tributos +
+                          safeNumber(
+                            row.irpjCssl,
+                          )
+                        : row.impostos
+                            .total_tributos
                     }
                     color={
                       taxColors
@@ -1983,14 +2276,14 @@ export function TaxSummaryTable({
                       consolidated
                     }
                     negative={
-                      negative
+                      negative ||
+                      taxNegative
                     }
                   />
 
                   <TaxCell
                     value={
-                      row.impostos
-                        .comissao
+                      row.comissao
                     }
                     color={
                       taxColors
@@ -2000,7 +2293,8 @@ export function TaxSummaryTable({
                       consolidated
                     }
                     negative={
-                      negative
+                      negative ||
+                      taxNegative
                     }
                   />
                 </TableRow>

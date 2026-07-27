@@ -29,8 +29,7 @@ import type { DashboardFilters } from '@/types/dashboard';
 const initialFilters: DashboardFilters = {
   codproj: 10030000,
   dtneg_inicial: null,
-  dtneg_final: null,
-  nunota: null,
+  dtneg_final: null
 };
 
 const summarySectionSx = {
@@ -382,9 +381,7 @@ export function DashboardPage() {
       filters.dtneg_inicial ===
         nextFilters.dtneg_inicial &&
       filters.dtneg_final ===
-        nextFilters.dtneg_final &&
-      filters.nunota ===
-        nextFilters.nunota;
+        nextFilters.dtneg_final;
 
     if (!sameFilters) {
       setFilters(nextFilters);
