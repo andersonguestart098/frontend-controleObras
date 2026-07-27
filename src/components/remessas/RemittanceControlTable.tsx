@@ -1,4 +1,4 @@
-import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
+import FormatListNumberedRtlOutlinedIcon from '@mui/icons-material/FormatListNumberedRtlOutlined';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import {
   Box,
@@ -862,7 +862,7 @@ export function RemittanceControlTable({
                 'rgba(193, 141, 52, 0.11)',
             }}
           >
-            <Inventory2RoundedIcon />
+            <FormatListNumberedRtlOutlinedIcon />
           </Box>
 
           <Box>

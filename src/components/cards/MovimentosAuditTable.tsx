@@ -1265,7 +1265,7 @@ export function MovimentosAuditTable({
     () => [
       {
         field: 'nunota',
-        headerName: 'NUNOTA',
+        headerName: 'Nº Único',
 
         type: 'number',
         width: 125,
@@ -1276,7 +1276,7 @@ export function MovimentosAuditTable({
         renderHeader:
           renderCheckboxHeader(
             'nunota',
-            'NUNOTA',
+            'Nº Único',
             'center',
           ),
 
@@ -1284,7 +1284,7 @@ export function MovimentosAuditTable({
           <Typography
             component="span"
             sx={{
-              color: '#4f6edb',
+              color: '#0095FF',
 
               fontSize: '0.875rem',
               fontWeight: 900,
@@ -1889,7 +1889,7 @@ export function MovimentosAuditTable({
 
               borderRadius: 2.5,
 
-              color: '#4f6edb',
+              color: '#0095FF',
 
               backgroundColor:
                 'rgba(79, 110, 219, 0.11)',
@@ -1903,7 +1903,7 @@ export function MovimentosAuditTable({
               component="h2"
 
               sx={{
-                color: '#0f172a',
+                color: '#0095FF',
 
                 fontSize: {
                   xs: '1.05rem',
@@ -1970,7 +1970,7 @@ export function MovimentosAuditTable({
             label={documentCountLabel}
 
             sx={{
-              color: '#4f6edb',
+              color: '#0095FF',
 
               backgroundColor:
                 'rgba(79, 110, 219, 0.10)',

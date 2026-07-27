@@ -1,15 +1,13 @@
 import type { ReactNode } from 'react';
 
-import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import FormatListNumberedRtlOutlinedIcon from '@mui/icons-material/FormatListNumberedRtlOutlined';
 import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 import MoneyOffCsredOutlinedIcon from '@mui/icons-material/MoneyOffCsredOutlined';
-import CardGiftcardOutlinedIcon from '@mui/icons-material/CardGiftcardOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import PriceCheckOutlinedIcon from '@mui/icons-material/PriceCheckOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
-import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
 import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
 import {
   Box,
