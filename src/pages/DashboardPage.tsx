@@ -28,8 +28,10 @@ import { DashboardFilterBar } from '@/components/filters/DashboardFilterBar';
 import { SectionHeader } from '@/components/layout/SectionHeader';
 import { RemittanceControlTable } from '@/components/remessas/RemittanceControlTable';
 import { SummarySection } from '@/components/summary/SummarySection';
+import { MovimentosAuditTable } from '@/components/cards/MovimentosAuditTable';
 import { useDashboardKpis } from '@/hooks/useDashboardKpis';
 import { useRemessasControl } from '@/hooks/useRemessasControl';
+import { useMovimentos } from '../hooks/useMovimentos';
 import type { DashboardFilters } from '@/types/dashboard';
 
 const initialFilters: DashboardFilters = {
@@ -147,9 +149,13 @@ export function DashboardPage() {
   const remessasControl =
     useRemessasControl(filters);
 
+  const movimentos =
+    useMovimentos(filters);
+
   const isUpdating =
     dashboard.isFetching ||
-    remessasControl.isFetching;
+    remessasControl.isFetching ||
+    movimentos.isFetching;
 
   const projectName =
   dashboard.data?.projeto.nome_projeto?.trim() ||
@@ -176,6 +182,7 @@ export function DashboardPage() {
     void Promise.all([
       dashboard.refetch(),
       remessasControl.refetch(),
+      movimentos.refetch(),
     ]);
   }
 
@@ -571,6 +578,37 @@ export function DashboardPage() {
                 </Box>
               </Box>
 
+               {/* AUDITORIA DE DOCUMENTOS */}
+              <Box
+                component="section"
+                sx={{
+                  ...separatedSectionSx,
+                  ...fadeUpSx(400),
+                }}
+              >
+                {movimentos.isError ? (
+                  <Alert
+                    severity="error"
+                    sx={{
+                      mb: 2,
+                    }}
+                  >
+                    Não foi possível carregar os documentos
+                    vinculados ao projeto.
+                  </Alert>
+                ) : null}
+
+                <MovimentosAuditTable
+                  movimentos={
+                    movimentos.data?.movimentos ?? []
+                  }
+                  loading={
+                    movimentos.isPending ||
+                    movimentos.isFetching
+                  }
+                />
+              </Box>
+
               {/* RESULTADO COMERCIAL */}
               <Box
                 component="section"
@@ -648,6 +686,8 @@ export function DashboardPage() {
                   </Box>
                 </Box>
               </Box>
+
+              {/* RESULTADO COMERCIAL */}
 
               {/* REMESSA FUTURA */}
               <Box

@@ -4,6 +4,10 @@ import type {
   RemessaControlResponse,
 } from '@/types/dashboard';
 
+import type {
+  MovimentosResponse,
+} from '@/types/movimentos';
+
 import { httpClient } from './httpClient';
 
 export async function getDashboardKpis(
@@ -32,6 +36,31 @@ export async function getRemessasControl(
       filters,
       {
         signal,
+      },
+    );
+
+  return response.data;
+}
+
+export async function getMovimentos(
+  filters: DashboardFilters,
+): Promise<MovimentosResponse> {
+  const response =
+    await httpClient.get<MovimentosResponse>(
+      '/dashboard/movimentos',
+      {
+        params: {
+          codproj: filters.codproj,
+
+          dtneg_inicial:
+            filters.dtneg_inicial ?? undefined,
+
+          dtneg_final:
+            filters.dtneg_final ?? undefined,
+
+          nunota:
+            filters.nunota ?? undefined,
+        },
       },
     );
 

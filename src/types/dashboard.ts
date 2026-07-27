@@ -195,3 +195,4 @@ export interface ProjetoResumo {
   codproj: number;
   nome_projeto: string;
 }
+
