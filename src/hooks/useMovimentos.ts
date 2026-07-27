@@ -16,8 +16,7 @@ export function useMovimentos(
       'movimentos',
       filters.codproj,
       filters.dtneg_inicial,
-      filters.dtneg_final,
-      filters.nunota,
+      filters.dtneg_final
     ],
 
     queryFn: () =>

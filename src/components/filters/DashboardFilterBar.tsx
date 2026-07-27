@@ -118,9 +118,7 @@ export function DashboardFilterBar({
         draft.dtneg_inicial || null,
 
       dtneg_final:
-        draft.dtneg_final || null,
-
-      nunota: draft.nunota,
+        draft.dtneg_final || null
     });
   }
 
