@@ -1,13 +1,5 @@
 import { useState } from 'react';
 
-import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
-import ArchitectureRoundedIcon from '@mui/icons-material/ArchitectureRounded';
-import AssignmentReturnRoundedIcon from '@mui/icons-material/AssignmentReturnRounded';
-import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
-import PaidRoundedIcon from '@mui/icons-material/PaidRounded';
-import SavingsRoundedIcon from '@mui/icons-material/SavingsRounded';
-import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
-import WarehouseRoundedIcon from '@mui/icons-material/WarehouseRounded';
 import {
   Alert,
   Box,
@@ -15,11 +7,11 @@ import {
   CardContent,
   CircularProgress,
   Container,
+  Skeleton,
   Typography,
 } from '@mui/material';
 
 import logoCemear from '@/assets/logo cem.png';
-import { KpiCard } from '@/components/cards/KpiCard';
 import { TaxSummaryTable } from '@/components/cards/TaxSummaryTable';
 import { RemittanceProgressChart } from '@/components/charts/RemittanceProgressChart';
 import { SalesCompositionChart } from '@/components/charts/SalesCompositionChart';
@@ -39,26 +31,6 @@ const initialFilters: DashboardFilters = {
   dtneg_inicial: null,
   dtneg_final: null,
   nunota: null,
-};
-
-const gridSx = {
-  display: 'grid',
-  gap: 2,
-
-  gridTemplateColumns: {
-    xs: '1fr',
-    sm: 'repeat(2, minmax(0, 1fr))',
-    xl: 'repeat(3, minmax(0, 1fr))',
-  },
-};
-
-const sectionGridSx = {
-  ...gridSx,
-
-  mt: {
-    xs: 2,
-    md: 2.5,
-  },
 };
 
 const summarySectionSx = {
@@ -118,6 +90,20 @@ const contentCardSx = {
     '0 12px 30px rgba(15, 23, 42, 0.06)',
 };
 
+const youtubeSkeletonSx = {
+  bgcolor: 'rgba(148, 163, 184, 0.22)',
+
+  '&::after': {
+    background:
+      'linear-gradient(' +
+      '90deg, ' +
+      'transparent, ' +
+      'rgba(255, 255, 255, 0.62), ' +
+      'transparent' +
+      ')',
+  },
+};
+
 const fadeUpSx = (
   delay = 0,
 ) => ({
@@ -136,6 +122,228 @@ const fadeUpSx = (
     animation: 'none',
   },
 });
+
+function SummarySectionSkeleton() {
+  return (
+    <Box component="section">
+      {/* TÍTULO DO RESUMO */}
+
+      <Box sx={{ mb: 2 }}>
+        <Skeleton
+          variant="text"
+          animation="wave"
+          width={205}
+          height={36}
+          sx={{
+            ...youtubeSkeletonSx,
+            transform: 'none',
+          }}
+        />
+
+        <Skeleton
+          variant="text"
+          animation="wave"
+          width={310}
+          height={22}
+          sx={{
+            ...youtubeSkeletonSx,
+            mt: 0.4,
+            transform: 'none',
+            borderRadius: 1,
+          }}
+        />
+      </Box>
+
+      {/* SEIS CARDS PRINCIPAIS */}
+
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+
+          alignItems: 'stretch',
+
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            md: 'repeat(3, minmax(0, 1fr))',
+            xl: 'repeat(6, minmax(0, 1fr))',
+          },
+        }}
+      >
+        {Array.from({
+          length: 6,
+        }).map((_, index) => (
+          <Card
+            key={index}
+            sx={{
+              ...contentCardSx,
+
+              minHeight: 176,
+
+              p: 2,
+
+              overflow: 'hidden',
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+
+                gap: 1.5,
+              }}
+            >
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                <Skeleton
+                  variant="text"
+                  animation="wave"
+                  width="78%"
+                  height={19}
+                  sx={youtubeSkeletonSx}
+                />
+
+                <Skeleton
+                  variant="text"
+                  animation="wave"
+                  width="55%"
+                  height={19}
+                  sx={youtubeSkeletonSx}
+                />
+              </Box>
+
+              <Skeleton
+                variant="circular"
+                animation="wave"
+                width={42}
+                height={42}
+                sx={{
+                  ...youtubeSkeletonSx,
+                  flexShrink: 0,
+                  borderRadius: '50%',
+                }}
+              />
+            </Box>
+
+            <Skeleton
+              variant="text"
+              animation="wave"
+              width="82%"
+              height={44}
+              sx={{
+                ...youtubeSkeletonSx,
+                mt: 1.2,
+              }}
+            />
+
+            <Skeleton
+              variant="text"
+              animation="wave"
+              width="68%"
+              height={20}
+              sx={youtubeSkeletonSx}
+            />
+
+            <Skeleton
+              variant="text"
+              animation="wave"
+              width="48%"
+              height={20}
+              sx={youtubeSkeletonSx}
+            />
+          </Card>
+        ))}
+      </Box>
+
+      {/* CONSOLIDADO INFERIOR */}
+
+      <Card
+        sx={{
+          ...contentCardSx,
+
+          mt: 2.5,
+          p: 1.5,
+
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.25,
+
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, minmax(0, 1fr))',
+              xl:
+                '1.35fr repeat(3, minmax(0, 1fr))',
+            },
+          }}
+        >
+          {Array.from({
+            length: 4,
+          }).map((_, index) => (
+            <Box
+              key={index}
+              sx={{
+                minHeight: 108,
+
+                p: 2,
+
+                borderRadius: 2.5,
+
+                border:
+                  '1px solid rgba(148, 163, 184, 0.13)',
+
+                backgroundColor:
+                  index === 0
+                    ? 'rgba(15, 23, 42, 0.06)'
+                    : '#f8fafc',
+              }}
+            >
+              <Skeleton
+                variant="text"
+                animation="wave"
+                width="48%"
+                height={18}
+                sx={youtubeSkeletonSx}
+              />
+
+              <Skeleton
+                variant="text"
+                animation="wave"
+                width="72%"
+                height={37}
+                sx={{
+                  ...youtubeSkeletonSx,
+                  mt: 0.6,
+                }}
+              />
+
+              <Skeleton
+                variant="text"
+                animation="wave"
+                width="60%"
+                height={18}
+                sx={youtubeSkeletonSx}
+              />
+            </Box>
+          ))}
+        </Box>
+      </Card>
+    </Box>
+  );
+}
+
+
+
 
 export function DashboardPage() {
   const [filters, setFilters] =
@@ -157,9 +365,13 @@ export function DashboardPage() {
     remessasControl.isFetching ||
     movimentos.isFetching;
 
+  const isDashboardLoading =
+    dashboard.isPending ||
+    dashboard.isFetching;
+
   const projectName =
-  dashboard.data?.projeto.nome_projeto?.trim() ||
-  `Projeto ${filters.codproj}`;
+    dashboard.data?.projeto.nome_projeto?.trim() ||
+    `Projeto ${filters.codproj}`;
 
   function handleApplyFilters(
     nextFilters: DashboardFilters,
@@ -325,7 +537,59 @@ export function DashboardPage() {
                   backgroundClip: 'text',
                 }}
               >
-                Dashboard - {projectName}
+                <Box
+                  component="span"
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 1.2,
+                  }}
+                >
+                  <Box component="span">
+                    Dashboard -
+                  </Box>
+
+                  {isDashboardLoading ? (
+                    <Skeleton
+                      component="span"
+                      variant="rounded"
+                      animation="wave"
+                      sx={{
+                        display: 'inline-block',
+
+                        width: {
+                          xs: 220,
+                          sm: 340,
+                          md: 430,
+                        },
+
+                        height: '0.92em',
+
+                        borderRadius: 1.2,
+
+                        backgroundColor:
+                          'rgba(255, 255, 255, 0.18)',
+
+                        WebkitTextFillColor: 'initial',
+
+                        '&::after': {
+                          background:
+                            'linear-gradient(' +
+                            '90deg, ' +
+                            'transparent, ' +
+                            'rgba(255, 255, 255, 0.18), ' +
+                            'transparent' +
+                            ')',
+                        },
+                      }}
+                    />
+                  ) : (
+                    <Box component="span">
+                      {projectName}
+                    </Box>
+                  )}
+                </Box>
               </Typography>
 
               <Typography
@@ -442,40 +706,15 @@ export function DashboardPage() {
           ) : null}
 
           {dashboard.isPending ? (
-            <Card
+            <Box
+              component="section"
               sx={{
-                ...contentCardSx,
+                ...summarySectionSx,
                 ...fadeUpSx(150),
-                mt: 4,
               }}
             >
-              <CardContent
-                sx={{
-                  minHeight: 260,
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 2,
-                  }}
-                >
-                  <CircularProgress />
-
-                  <Typography
-                    sx={{
-                      color: 'text.secondary',
-                    }}
-                  >
-                    Carregando indicadores do projeto...
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
+              <SummarySectionSkeleton />
+            </Box>
           ) : null}
 
           {dashboard.data ? (
@@ -494,9 +733,13 @@ export function DashboardPage() {
                   ...fadeUpSx(180),
                 }}
               >
-                <SummarySection
-                  kpis={dashboard.data.kpis}
-                />
+                {dashboard.isFetching ? (
+                  <SummarySectionSkeleton />
+                ) : (
+                  <SummarySection
+                    kpis={dashboard.data.kpis}
+                  />
+                )}
               </Box>
 
               {/* IMPOSTOS E COMISSÃO */}
@@ -677,6 +920,7 @@ export function DashboardPage() {
                   </Box>
                 ) : null}
               </Box>
+
             </Box>
           ) : null}
         </Box>
