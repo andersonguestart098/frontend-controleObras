@@ -62,6 +62,9 @@ interface SummaryItemProps {
 const IRPJ_CSSL_PERCENTUAL = 3.35;
 const IRPJ_CSSL_RATE = 0.0335;
 
+const CUSTO_OPERACIONAL_PERCENTUAL = 17;
+const CUSTO_OPERACIONAL_RATE = 0.17;
+
 const taxColors = {
   valor: '#0f766e',
   custo: '#dc2626',
@@ -719,7 +722,7 @@ export function TaxSummaryTable({
   /*
    * REMESSA TRANSPORTE:
    *
-   * valor real das notas filhas TOP 1157,
+   * valor real das notas filhas TOP 1010,
    * vindo de remessas_transporte.sql.
    */
 
@@ -732,32 +735,22 @@ export function TaxSummaryTable({
     );
 
   /*
-   * CONSOLIDADO:
+   * TOTAL DA COLUNA VALOR:
    *
-   * Vendas
-   * - devoluções
-   * + Bonificações
-   * + Interno Obras
+   * + Vendas
+   * - Devoluções
    * + Remessa futura
    *
-   * A bonificação entra porque compõe a base
-   * de IRPJ/CSLL, mesmo sem receita efetiva.
-   *
-   * A Remessa transporte fica de fora:
-   * ela é a entrega das notas filhas da
-   * própria Remessa futura, cujo valor
-   * já foi faturado e contado acima.
-   *
-   * Mesma regra usada nos impostos, no
-   * IRPJ/CSLL e na comissão.
+   * Não entram:
+   * - Bonificações
+   * - Interno Obras
+   * - Devoluções Interno Obras
+   * - Remessa transporte
    */
 
   const valorConsolidado =
     valorVendas +
     valorDevolucoes +
-    valorBonificados +
-    valorInternoObrasBruto +
-    valorDevolucoesInternoObras +
     valorRemessaFutura;
 
   /*
@@ -823,7 +816,7 @@ export function TaxSummaryTable({
    * própria remessas.sql.
    *
    * custo_entregue é o custo já baixado pelas
-   * notas filhas TOP 1157.
+   * notas filhas TOP 1010.
    *
    * As duas informações são independentes:
    * uma diz quanto a operação custou, a outra
@@ -867,7 +860,7 @@ export function TaxSummaryTable({
    * colunas ao mesmo tempo.
    *
    * A baixa da Remessa futura acontece pelas
-   * notas 1157 e já vem pronta no campo
+   * notas 1010 e já vem pronta no campo
    * custo_entregue.
    */
 
@@ -914,6 +907,19 @@ export function TaxSummaryTable({
    * Remessa futura.
    */
 
+  /*
+   * TOTAL DA COLUNA VALOR CUSTO:
+   *
+   * + Vendas
+   * - Devoluções
+   * - Bonificações
+   * + Interno Obras
+   * - Devoluções Interno Obras
+   * + Remessa futura
+   *
+   * Remessa transporte não entra.
+   */
+
   const custoConsolidado =
     custoVendas +
     custoEntregueDevolucoes +
@@ -931,7 +937,7 @@ export function TaxSummaryTable({
    * Obras entregam no ato, logo saldo zero.
    *
    * A Remessa futura é a única com saldo:
-   * custo próprio menos o que as 1157 já
+   * custo próprio menos o que as 1010 já
    * entregaram.
    */
 
@@ -1136,7 +1142,7 @@ export function TaxSummaryTable({
 
   /*
    * A Remessa transporte usa os impostos reais
-   * das notas filhas TOP 1157, calculados na
+   * das notas filhas TOP 1010, calculados na
    * própria remessas_transporte.sql.
    *
    * Ficam positivos, apenas como informação:
@@ -1233,6 +1239,88 @@ export function TaxSummaryTable({
       impostosDevolucoesInternoObras,
 
       impostosRemessaFutura,
+    );
+
+  /*
+   * TOTAL DAS COLUNAS DE ENCARGOS:
+   *
+   * ICMS, PIS, COFINS, IRPJ/CSLL e Tributos:
+   * + Vendas
+   * - Devoluções
+   * + Bonificações
+   * + Interno Obras
+   * - Devoluções Interno Obras
+   * + Remessa futura
+   *
+   * Comissão:
+   * + Vendas
+   * - Devoluções
+   * + Interno Obras
+   * - Devoluções Interno Obras
+   * + Remessa futura
+   *
+   * Bonificações e Remessa transporte não
+   * entram na comissão.
+   */
+
+  const tributosConsolidados =
+    Number(
+      (
+        impostosConsolidado.total_tributos +
+        irpjCsslConsolidado
+      ).toFixed(2),
+    );
+
+  const comissaoConsolidada =
+    Number(
+      impostosConsolidado.comissao.toFixed(2),
+    );
+
+  /*
+   * MARGEM BRUTA:
+   *
+   * Valor
+   * - Valor custo
+   * - Tributos
+   * - Comissão
+   */
+
+  const margemBruta =
+    Number(
+      (
+        valorConsolidado -
+        custoConsolidado -
+        tributosConsolidados -
+        comissaoConsolidada
+      ).toFixed(2),
+    );
+
+  /*
+   * CUSTO OPERACIONAL:
+   *
+   * 17% sobre o total da coluna Valor.
+   */
+
+  const custoOperacional =
+    Number(
+      (
+        valorConsolidado *
+        CUSTO_OPERACIONAL_RATE
+      ).toFixed(2),
+    );
+
+  /*
+   * RESULTADO LÍQUIDO:
+   *
+   * Margem bruta - custo operacional.
+   */
+
+  const resultadoLiquido =
+    Number(
+      (
+        margemBruta -
+        custoOperacional
+      ).toFixed(2),
     );
 
   const rows: TaxTableRow[] = [
@@ -1603,11 +1691,7 @@ export function TaxSummaryTable({
         >
           <SummaryItem
             title="Tributos consolidados"
-            value={
-              impostosConsolidado
-                .total_tributos +
-              irpjCsslConsolidado
-            }
+            value={tributosConsolidados}
             color={
               taxColors.tributos
             }
@@ -1616,14 +1700,41 @@ export function TaxSummaryTable({
 
           <SummaryItem
             title="Comissão consolidada"
-            value={
-              impostosConsolidado
-                .comissao
-            }
+            value={comissaoConsolidada}
             color={
               taxColors.comissao
             }
             backgroundColor="rgba(249, 115, 22, 0.08)"
+          />
+
+          <SummaryItem
+            title="Margem bruta"
+            value={margemBruta}
+            color={
+              margemBruta >= 0
+                ? taxColors.valor
+                : taxColors.negative
+            }
+            backgroundColor={
+              margemBruta >= 0
+                ? 'rgba(15, 118, 110, 0.08)'
+                : 'rgba(220, 38, 38, 0.07)'
+            }
+          />
+
+          <SummaryItem
+            title={`Resultado líquido (-${CUSTO_OPERACIONAL_PERCENTUAL}% operacional)`}
+            value={resultadoLiquido}
+            color={
+              resultadoLiquido >= 0
+                ? '#2563eb'
+                : taxColors.negative
+            }
+            backgroundColor={
+              resultadoLiquido >= 0
+                ? 'rgba(37, 99, 235, 0.08)'
+                : 'rgba(220, 38, 38, 0.07)'
+            }
           />
         </Box>
       </Box>

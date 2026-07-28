@@ -7,7 +7,6 @@ import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import PriceCheckOutlinedIcon from '@mui/icons-material/PriceCheckOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
-import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
 import {
   Box,
   Card,
@@ -16,7 +15,6 @@ import {
   Typography,
 } from '@mui/material';
 
-import { KpiCard } from '@/components/cards/KpiCard';
 import { RollingCurrency } from '@/components/common/RollingCurrency';
 import type { DashboardKpis } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
@@ -46,16 +44,34 @@ interface BonusBubbleProps {
   rollDelay?: number;
 }
 
-interface ReturnsBreakdownCardProps {
-  salesReturns: number;
-  internalReturns: number;
+interface OperationsBreakdownCardProps {
+  salesValue: number;
+  internalValue: number;
+  returnsValue: number;
 
-  salesReturnCost: number;
-  internalReturnCost: number;
+  salesCost: number;
+  internalCost: number;
+  returnsCost: number;
 
-  totalReturns: number;
-  totalReturnCost: number;
+  rollDelay?: number;
+}
 
+interface RemittanceBreakdownCardProps {
+  invoicedValue: number;
+  deliveredValue: number;
+  balanceValue: number;
+
+  invoicedCost: number;
+  deliveredCost: number;
+  balanceCost: number;
+
+  rollDelay?: number;
+}
+
+interface ResultBreakdownCardProps {
+  grossMargin: number;
+  netResult: number;
+  operationalCost: number;
   rollDelay?: number;
 }
 
@@ -67,6 +83,8 @@ const BUBBLE_COLOR = '#C96A16';
  * IRPJ/CSLL sobre o valor de cada origem.
  */
 const IRPJ_CSSL_RATE = 0.0335;
+const OPERATIONAL_COST_RATE = 0.17;
+const OPERATIONAL_COST_PERCENTUAL = 17;
 
 /*
  * Rastro de bolhas subindo pela direita do
@@ -105,11 +123,15 @@ function safeNumber(
     : 0;
 }
 
+function roundMoney(value: number): number {
+  return Number(safeNumber(value).toFixed(2));
+}
+
 /*
  * Balão flutuante com o dado de bonificações.
  *
  * No desktop ele sai do fluxo e fica pairando
- * acima do card de devoluções. No mobile entra
+ * acima do card de resultado. No mobile entra
  * na coluna, logo acima do card.
  */
 function BonusBubble({
@@ -361,24 +383,50 @@ function BonusBubble({
 
 
 /*
- * Card compacto de devoluções.
+ * Card unificado das remessas.
  *
- * Mantém a mesma área do KPI original, mas
- * separa as devoluções de vendas das devoluções
- * de Interno Obras e apresenta os totais no rodapé.
+ * Reúne faturamento, entrega e saldo em uma
+ * única leitura, mantendo os respectivos custos
+ * logo abaixo de cada etapa.
  */
-function ReturnsBreakdownCard({
-  salesReturns,
-  internalReturns,
+function RemittanceBreakdownCard({
+  invoicedValue,
+  deliveredValue,
+  balanceValue,
 
-  salesReturnCost,
-  internalReturnCost,
+  invoicedCost,
+  deliveredCost,
+  balanceCost,
 
-  totalReturns,
-  totalReturnCost,
+  rollDelay = 0,
+}: RemittanceBreakdownCardProps) {
+  const items = [
+    {
+      key: 'faturado',
+      label: 'Faturado',
+      value: invoicedValue,
+      costLabel: 'Custo',
+      cost: invoicedCost,
+      color: '#2563eb',
+    },
+    {
+      key: 'entregue',
+      label: 'Entregue',
+      value: deliveredValue,
+      costLabel: 'Custo entregue',
+      cost: deliveredCost,
+      color: '#0284c7',
+    },
+    {
+      key: 'saldo',
+      label: 'Saldo',
+      value: balanceValue,
+      costLabel: 'Saldo custo',
+      cost: balanceCost,
+      color: '#d97706',
+    },
+  ];
 
-  rollDelay = 350,
-}: ReturnsBreakdownCardProps) {
   return (
     <Card
       sx={{
@@ -387,7 +435,6 @@ function ReturnsBreakdownCard({
 
         borderRadius: 2.5,
         border: 'none',
-
         backgroundColor: '#ffffff',
 
         boxShadow:
@@ -399,7 +446,6 @@ function ReturnsBreakdownCard({
 
         '&:hover': {
           transform: 'translateY(-3px)',
-
           boxShadow:
             '0 7px 20px rgba(15, 23, 42, 0.11), ' +
             '0 18px 38px rgba(15, 23, 42, 0.08)',
@@ -409,7 +455,6 @@ function ReturnsBreakdownCard({
       <CardContent
         sx={{
           height: '100%',
-
           display: 'flex',
           flexDirection: 'column',
 
@@ -428,16 +473,253 @@ function ReturnsBreakdownCard({
             gap: 1.25,
           }}
         >
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'text.secondary',
+                fontWeight: 700,
+                lineHeight: 1.25,
+              }}
+            >
+              Remessas futuras
+            </Typography>
+
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                mt: 0.15,
+                color: '#94a3b8',
+                fontSize: '0.62rem',
+                fontWeight: 700,
+              }}
+            >
+              Faturamento, entrega e saldo
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              width: 38,
+              height: 38,
+
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+
+              borderRadius: 2,
+              color: '#0284c7',
+              backgroundColor:
+                'rgba(2, 132, 199, 0.10)',
+
+              '& svg': {
+                fontSize: 21,
+              },
+            }}
+          >
+            <LocalShippingOutlinedIcon />
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(3, minmax(0, 1fr))',
+            },
+
+            gap: {
+              xs: 1.15,
+              sm: 0,
+            },
+
+            mt: 1.15,
+          }}
+        >
+          {items.map((item, index) => (
+            <Box
+              key={item.key}
+              sx={{
+                minWidth: 0,
+
+                px: {
+                  xs: 0,
+                  sm: index === 0 ? 0 : 1.35,
+                },
+
+                borderLeft: {
+                  xs: 'none',
+                  sm:
+                    index === 0
+                      ? 'none'
+                      : '1px solid rgba(148, 163, 184, 0.20)',
+                },
+
+                borderTop: {
+                  xs:
+                    index === 0
+                      ? 'none'
+                      : '1px solid rgba(148, 163, 184, 0.14)',
+                  sm: 'none',
+                },
+
+                pt: {
+                  xs: index === 0 ? 0 : 1,
+                  sm: 0,
+                },
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  color: item.color,
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  letterSpacing: '0.03em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {item.label}
+              </Typography>
+
+              <Typography
+                component="div"
+                sx={{
+                  mt: 0.18,
+                  color: '#0f172a',
+                  fontSize: {
+                    xs: '1.15rem',
+                    md: '1.2rem',
+                  },
+                  lineHeight: 1.15,
+                  fontWeight: 900,
+                  letterSpacing: '-0.03em',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <RollingCurrency
+                  value={item.value}
+                  startDelay={
+                    rollDelay + index * 70
+                  }
+                  delayStep={55}
+                />
+              </Typography>
+
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  mt: 0.45,
+                  color: item.color,
+                  fontSize: '0.65rem',
+                  fontWeight: 750,
+                  lineHeight: 1.2,
+                }}
+              >
+                {item.costLabel}:{' '}
+                {formatCurrency(item.cost)}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
+/*
+ * Margem e resultado em um único card.
+ *
+ * Cada indicador assume verde quando positivo
+ * e vermelho quando negativo. O custo operacional
+ * de 17% aparece no rodapé como memória de cálculo.
+ */
+function ResultBreakdownCard({
+  grossMargin,
+  netResult,
+  operationalCost,
+  rollDelay = 300,
+}: ResultBreakdownCardProps) {
+  const grossMarginPositive = grossMargin >= 0;
+  const netResultPositive = netResult >= 0;
+
+  const grossMarginColor = grossMarginPositive
+    ? '#16a34a'
+    : '#dc2626';
+
+  const netResultColor = netResultPositive
+    ? '#16a34a'
+    : '#dc2626';
+
+  const accentColor = netResultPositive
+    ? '#16a34a'
+    : '#dc2626';
+
+  const backgroundColor = netResultPositive
+    ? 'rgba(22, 163, 74, 0.055)'
+    : 'rgba(220, 38, 38, 0.055)';
+
+  return (
+    <Card
+      sx={{
+        height: '100%',
+        minHeight: 155,
+
+        borderRadius: 2.5,
+        border: 'none',
+        backgroundColor: '#ffffff',
+
+        boxShadow:
+          '0 3px 10px rgba(15, 23, 42, 0.07), ' +
+          '0 12px 30px rgba(15, 23, 42, 0.06)',
+
+        transition:
+          'transform 180ms ease, box-shadow 180ms ease',
+
+        '&:hover': {
+          transform: 'translateY(-3px)',
+          boxShadow:
+            '0 7px 20px rgba(15, 23, 42, 0.11), ' +
+            '0 18px 38px rgba(15, 23, 42, 0.08)',
+        },
+      }}
+    >
+      <CardContent
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+
+          p: 2.25,
+
+          backgroundColor,
+
+          '&:last-child': {
+            pb: 2.25,
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 1.1,
+          }}
+        >
           <Typography
             variant="body2"
             sx={{
               color: 'text.secondary',
-
               fontWeight: 700,
               lineHeight: 1.25,
             }}
           >
-            Devoluções
+            Resultado da obra
           </Typography>
 
           <Box
@@ -447,22 +729,20 @@ function ReturnsBreakdownCard({
 
               display: 'grid',
               placeItems: 'center',
-
               flexShrink: 0,
 
               borderRadius: 2,
-
-              color: '#dc2626',
-
-              backgroundColor:
-                'rgba(220, 38, 38, 0.10)',
+              color: accentColor,
+              backgroundColor: netResultPositive
+                ? 'rgba(22, 163, 74, 0.11)'
+                : 'rgba(220, 38, 38, 0.10)',
 
               '& svg': {
                 fontSize: 21,
               },
             }}
           >
-            <MoneyOffCsredOutlinedIcon />
+            <PriceCheckOutlinedIcon />
           </Box>
         </Box>
 
@@ -471,10 +751,8 @@ function ReturnsBreakdownCard({
             display: 'grid',
             gridTemplateColumns:
               'repeat(2, minmax(0, 1fr))',
-
-            gap: 1,
-
-            mt: 0.5,
+            gap: 1.5,
+            mt: 1.05,
           }}
         >
           <Box sx={{ minWidth: 0 }}>
@@ -482,31 +760,25 @@ function ReturnsBreakdownCard({
               variant="caption"
               sx={{
                 display: 'block',
-
                 color: '#64748b',
-
-                fontSize: '0.62rem',
+                fontSize: '0.61rem',
                 fontWeight: 900,
-
-                letterSpacing: '0.02em',
+                lineHeight: 1.15,
                 textTransform: 'uppercase',
               }}
             >
-              Devoluções
+              Margem bruta
             </Typography>
 
             <Typography
               component="div"
               sx={{
-                mt: 0.15,
-
-                color: '#0f172a',
-
+                mt: 0.2,
+                color: grossMarginColor,
                 fontSize: {
-                  xs: '0.98rem',
-                  md: '1.05rem',
+                  xs: '1.18rem',
+                  md: '1.45rem',
                 },
-
                 lineHeight: 1.15,
                 fontWeight: 900,
                 letterSpacing: '-0.025em',
@@ -514,36 +786,17 @@ function ReturnsBreakdownCard({
               }}
             >
               <RollingCurrency
-                value={salesReturns}
+                value={grossMargin}
                 startDelay={rollDelay}
                 delayStep={55}
               />
-            </Typography>
-
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-
-                mt: 0.3,
-
-                color: '#FF746D',
-
-                fontSize: '0.64rem',
-                fontWeight: 750,
-                lineHeight: 1.2,
-              }}
-            >
-              Custo {formatCurrency(salesReturnCost)}
             </Typography>
           </Box>
 
           <Box
             sx={{
               minWidth: 0,
-
-              pl: 1,
-
+              pl: 0.9,
               borderLeft:
                 '1px solid rgba(148, 163, 184, 0.20)',
             }}
@@ -552,31 +805,25 @@ function ReturnsBreakdownCard({
               variant="caption"
               sx={{
                 display: 'block',
-
                 color: '#64748b',
-
-                fontSize: '0.62rem',
+                fontSize: '0.61rem',
                 fontWeight: 900,
-
-                letterSpacing: '0.02em',
+                lineHeight: 1.15,
                 textTransform: 'uppercase',
               }}
             >
-              Interno Obras
+              Resultado líquido
             </Typography>
 
             <Typography
               component="div"
               sx={{
-                mt: 0.15,
-
-                color: '#0f172a',
-
+                mt: 0.2,
+                color: netResultColor,
                 fontSize: {
-                  xs: '0.98rem',
-                  md: '1.05rem',
+                  xs: '1.18rem',
+                  md: '1.45rem',
                 },
-
                 lineHeight: 1.15,
                 fontWeight: 900,
                 letterSpacing: '-0.025em',
@@ -584,98 +831,50 @@ function ReturnsBreakdownCard({
               }}
             >
               <RollingCurrency
-                value={internalReturns}
-                startDelay={rollDelay + 70}
+                value={netResult}
+                startDelay={rollDelay + 80}
                 delayStep={55}
               />
-            </Typography>
-
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-
-                mt: 0.3,
-
-                color: '#FF746D',
-
-                fontSize: '0.64rem',
-                fontWeight: 750,
-                lineHeight: 1.2,
-              }}
-            >
-              Custo {formatCurrency(internalReturnCost)}
             </Typography>
           </Box>
         </Box>
 
         <Box
           sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 0.8,
+
             mt: 'auto',
-            pt: 0.8,
+            pt: 0.75,
 
             borderTop:
-              '1px solid rgba(148, 163, 184, 0.16)',
+              '1px solid rgba(148, 163, 184, 0.14)',
           }}
         >
-          <Box
+          <Typography
+            variant="caption"
             sx={{
-              display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              gap: 1,
+              color: '#94a3b8',
+              fontSize: '0.60rem',
+              fontWeight: 750,
+              lineHeight: 1.2,
             }}
           >
-            <Typography
-              variant="caption"
-              sx={{
-                color: '#94a3b8',
-
-                fontSize: '0.62rem',
-                fontWeight: 800,
-
-                letterSpacing: '0.03em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Total
-            </Typography>
-
-            <Typography
-              component="div"
-              sx={{
-                color: '#dc2626',
-
-                fontSize: '0.95rem',
-                lineHeight: 1.1,
-                fontWeight: 900,
-                letterSpacing: '-0.025em',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <RollingCurrency
-                value={totalReturns}
-                startDelay={rollDelay + 140}
-                delayStep={60}
-              />
-            </Typography>
-          </Box>
+            Operacional {OPERATIONAL_COST_PERCENTUAL}%
+          </Typography>
 
           <Typography
             variant="caption"
             sx={{
-              display: 'block',
-
-              mt: 0.2,
-
-              color: '#FF746D',
-
-              fontSize: '0.64rem',
-              fontWeight: 750,
-              textAlign: 'right',
+              color: '#64748b',
+              fontSize: '0.65rem',
+              fontWeight: 850,
+              whiteSpace: 'nowrap',
             }}
           >
-            Custo total {formatCurrency(totalReturnCost)}
+            {formatCurrency(operationalCost)}
           </Typography>
         </Box>
       </CardContent>
@@ -683,14 +882,256 @@ function ReturnsBreakdownCard({
   );
 }
 
+
 /*
- * Total de custo com a parcela de bonificação
- * separada.
+ * Card unificado das operações.
  *
- * A bonificação é custo puro: sai do estoque
- * e não tem receita nem abatimento, por isso
- * aparece somando à parte.
+ * Reúne Vendas normais, Interno Obras e o total
+ * das devoluções no mesmo formato visual usado
+ * pelo card unificado de remessas.
  */
+function OperationsBreakdownCard({
+  salesValue,
+  internalValue,
+  returnsValue,
+
+  salesCost,
+  internalCost,
+  returnsCost,
+
+  rollDelay = 210,
+}: OperationsBreakdownCardProps) {
+  const items = [
+    {
+      key: 'vendas',
+      label: 'Vendas',
+      value: salesValue,
+      costLabel: 'Custo',
+      cost: salesCost,
+      color: '#0284c7',
+    },
+    {
+      key: 'interno_obras',
+      label: 'Interno Obras',
+      value: internalValue,
+      costLabel: 'Custo',
+      cost: internalCost,
+      color: '#0d9488',
+    },
+    {
+      key: 'devolucoes',
+      label: 'Devoluções',
+      value: returnsValue,
+      costLabel: 'Custo estornado',
+      cost: returnsCost,
+      color: '#dc2626',
+    },
+  ];
+
+  return (
+    <Card
+      sx={{
+        height: '100%',
+        minHeight: 155,
+
+        borderRadius: 2.5,
+        border: 'none',
+        backgroundColor: '#ffffff',
+
+        boxShadow:
+          '0 3px 10px rgba(15, 23, 42, 0.07), ' +
+          '0 12px 30px rgba(15, 23, 42, 0.06)',
+
+        transition:
+          'transform 180ms ease, box-shadow 180ms ease',
+
+        '&:hover': {
+          transform: 'translateY(-3px)',
+          boxShadow:
+            '0 7px 20px rgba(15, 23, 42, 0.11), ' +
+            '0 18px 38px rgba(15, 23, 42, 0.08)',
+        },
+      }}
+    >
+      <CardContent
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+
+          p: 2.25,
+
+          '&:last-child': {
+            pb: 2.25,
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 1.25,
+          }}
+        >
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'text.secondary',
+                fontWeight: 700,
+                lineHeight: 1.25,
+              }}
+            >
+              Operações
+            </Typography>
+
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                mt: 0.15,
+                color: '#94a3b8',
+                fontSize: '0.62rem',
+                fontWeight: 700,
+              }}
+            >
+              Vendas, Interno Obras e devoluções
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              width: 38,
+              height: 38,
+
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+
+              borderRadius: 2,
+              color: '#0284c7',
+              backgroundColor:
+                'rgba(2, 132, 199, 0.10)',
+
+              '& svg': {
+                fontSize: 21,
+              },
+            }}
+          >
+            <PaymentsOutlinedIcon />
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(3, minmax(0, 1fr))',
+            },
+
+            gap: {
+              xs: 1.15,
+              sm: 0,
+            },
+
+            mt: 1.15,
+          }}
+        >
+          {items.map((item, index) => (
+            <Box
+              key={item.key}
+              sx={{
+                minWidth: 0,
+
+                px: {
+                  xs: 0,
+                  sm: index === 0 ? 0 : 1.35,
+                },
+
+                borderLeft: {
+                  xs: 'none',
+                  sm:
+                    index === 0
+                      ? 'none'
+                      : '1px solid rgba(148, 163, 184, 0.20)',
+                },
+
+                borderTop: {
+                  xs:
+                    index === 0
+                      ? 'none'
+                      : '1px solid rgba(148, 163, 184, 0.14)',
+                  sm: 'none',
+                },
+
+                pt: {
+                  xs: index === 0 ? 0 : 1,
+                  sm: 0,
+                },
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  color: item.color,
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  letterSpacing: '0.03em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {item.label}
+              </Typography>
+
+              <Typography
+                component="div"
+                sx={{
+                  mt: 0.18,
+                  color: '#0f172a',
+                  fontSize: {
+                    xs: '1.15rem',
+                    md: '1.2rem',
+                  },
+                  lineHeight: 1.15,
+                  fontWeight: 900,
+                  letterSpacing: '-0.03em',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <RollingCurrency
+                  value={item.value}
+                  startDelay={
+                    rollDelay + index * 70
+                  }
+                  delayStep={55}
+                />
+              </Typography>
+
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  mt: 0.45,
+                  color: item.color,
+                  fontSize: '0.65rem',
+                  fontWeight: 750,
+                  lineHeight: 1.2,
+                }}
+              >
+                {item.costLabel}:{' '}
+                {formatCurrency(item.cost)}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
 function CostBreakdownMetric({
   title,
   operations,
@@ -1186,7 +1627,7 @@ export function SummarySection({
    * - remessas.sql (TOP 1009):
    *   faturamento e custo próprio da nota-mãe.
    *
-   * - remessas_transporte.sql (TOP 1157):
+   * - remessas_transporte.sql (TOP 1010):
    *   valor, impostos e custo das notas filhas,
    *   ou seja, o que já foi entregue.
    */
@@ -1376,7 +1817,7 @@ export function SummarySection({
    *
    * Mesma conta, trocando o custo próprio da
    * remessa pelo custo efetivamente entregue
-   * pelas notas TOP 1157.
+   * pelas notas TOP 1010.
    */
 
   const custoEntregueOperacoes =
@@ -1441,56 +1882,110 @@ export function SummarySection({
     );
 
   const irpjCsslVendas =
-    safeNumber(
-      kpis.vendas?.total_vendas,
-    ) * IRPJ_CSSL_RATE;
+    roundMoney(
+      safeNumber(
+        kpis.vendas?.total_vendas,
+      ) * IRPJ_CSSL_RATE,
+    );
 
   const irpjCsslDevolucoes =
-    -(
+    -roundMoney(
       totalDevolucoes *
-      IRPJ_CSSL_RATE
+      IRPJ_CSSL_RATE,
     );
 
   const irpjCsslBonificados =
-    totalBonificados *
-    IRPJ_CSSL_RATE;
+    roundMoney(
+      totalBonificados *
+      IRPJ_CSSL_RATE,
+    );
 
   const irpjCsslInternoObras =
-    valorInternoObrasBruto *
-    IRPJ_CSSL_RATE;
+    roundMoney(
+      valorInternoObrasBruto *
+      IRPJ_CSSL_RATE,
+    );
 
   const irpjCsslDevolucoesInternoObras =
-    -(
+    -roundMoney(
       kpis.devolucoes_interno_obras
         ?.irpj_cssl ??
       totalDevolucoesInternoObras *
-        IRPJ_CSSL_RATE
+        IRPJ_CSSL_RATE,
     );
 
   const irpjCsslRemessaFutura =
-    valorRemessaFutura *
-    IRPJ_CSSL_RATE;
+    roundMoney(
+      valorRemessaFutura *
+      IRPJ_CSSL_RATE,
+    );
 
   const totalIrpjCssl =
-    irpjCsslVendas +
-    irpjCsslDevolucoes +
-    irpjCsslBonificados +
-    irpjCsslInternoObras +
-    irpjCsslDevolucoesInternoObras +
-    irpjCsslRemessaFutura;
+    roundMoney(
+      irpjCsslVendas +
+      irpjCsslDevolucoes +
+      irpjCsslBonificados +
+      irpjCsslInternoObras +
+      irpjCsslDevolucoesInternoObras +
+      irpjCsslRemessaFutura,
+    );
 
   const totalImpostos =
-    safeNumber(
-      kpis.impostos?.consolidado_liquido
-        ?.total_tributos,
-    ) +
-    impostosBonificados +
-    totalIrpjCssl;
+    roundMoney(
+      safeNumber(
+        kpis.impostos?.consolidado_liquido
+          ?.total_tributos,
+      ) +
+      impostosBonificados +
+      totalIrpjCssl,
+    );
 
   const totalComissao =
-    safeNumber(
-      kpis.impostos?.consolidado_liquido
-        ?.comissao,
+    roundMoney(
+      safeNumber(
+        kpis.impostos?.consolidado_liquido
+          ?.comissao,
+      ),
+    );
+
+  /*
+   * RESULTADO CONSOLIDADO
+   *
+   * Valor:
+   * + vendas
+   * - devoluções normais
+   * + remessa futura
+   *
+   * Bonificações, Interno Obras, devoluções de
+   * Interno Obras e Remessa transporte não entram
+   * nessa coluna, seguindo a mesma regra da tabela.
+   */
+  const valorConsolidado =
+    roundMoney(
+      safeNumber(
+        kpis.vendas?.total_vendas,
+      ) -
+      totalDevolucoes +
+      valorRemessaFutura,
+    );
+
+  const margemBruta =
+    roundMoney(
+      valorConsolidado -
+      totalCusto -
+      totalImpostos -
+      totalComissao,
+    );
+
+  const custoOperacional =
+    roundMoney(
+      valorConsolidado *
+      OPERATIONAL_COST_RATE,
+    );
+
+  const resultadoLiquido =
+    roundMoney(
+      margemBruta - custoOperacional,
     );
 
   return (
@@ -1536,7 +2031,7 @@ export function SummarySection({
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, minmax(0, 1fr))',
-            md: 'repeat(3, minmax(0, 1fr))',
+            md: 'repeat(2, minmax(0, 1fr))',
             xl: 'repeat(6, minmax(0, 1fr))',
           },
 
@@ -1545,100 +2040,82 @@ export function SummarySection({
           },
         }}
       >
-        <KpiCard
-          title="Faturamento remessas"
-          value={valorRemessaFutura}
-          subtitle={`Custo: ${formatCurrency(
-            custoRemessa,
-          )}`}
-          subtitleColor="#FF746D"
-          icon={<PaymentsOutlinedIcon />}
-          tone="primary"
-          rollDelay={0}
-        />
+        {/* REMESSAS — primeiro terço da linha */}
+        <Box
+          sx={{
+            gridColumn: {
+              xs: 'auto',
+              sm: 'span 2',
+              md: 'span 2',
+              xl: 'span 2',
+            },
+          }}
+        >
+          <RemittanceBreakdownCard
+            invoicedValue={valorRemessaFutura}
+            deliveredValue={valorRemessaTransporte}
+            balanceValue={saldoRemessa}
+            invoicedCost={custoRemessa}
+            deliveredCost={custoRemessaEntregue}
+            balanceCost={saldoCustoRemessa}
+            rollDelay={0}
+          />
+        </Box>
 
-        <KpiCard
-          title="Entregas remessa futura"
-          value={valorRemessaTransporte}
-          subtitle={`Custo entregue: ${formatCurrency(
-            custoRemessaEntregue,
-          )}`}
-          subtitleColor="#4EAAEF"
-          icon={
-            <LocalShippingOutlinedIcon />
-          }
-          tone="info"
-          rollDelay={70}
-        />
+        {/* OPERAÇÕES — mesmo tamanho do card de remessas */}
+        <Box
+          sx={{
+            gridColumn: {
+              xs: 'auto',
+              sm: 'span 2',
+              md: 'span 2',
+              xl: 'span 2',
+            },
+          }}
+        >
+          <OperationsBreakdownCard
+            salesValue={safeNumber(
+              kpis.vendas?.total_vendas,
+            )}
+            internalValue={safeNumber(
+              kpis.interno_obras?.total,
+            )}
+            returnsValue={totalGeralDevolucoes}
+            salesCost={custoVendas}
+            internalCost={custoInternoObras}
+            returnsCost={custoTotalDevolucoes}
+            rollDelay={210}
+          />
+        </Box>
 
-        <KpiCard
-          title="Saldo remessa"
-          value={saldoRemessa}
-          subtitle={`Saldo custo: ${formatCurrency(
-            saldoCustoRemessa,
-          )}`}
-          subtitleColor="#C18D34"
-          icon={
-            <PaidOutlinedIcon />
-          }
-          tone="warning"
-          rollDelay={140}
-        />
+        {/*
+         * RESULTADO — ocupa o espaço onde ficava o
+         * card de devoluções e usa todo o terço final.
+         * O balão de bonificações permanece ancorado
+         * no último card da linha.
+         */}
+        <Box
+          sx={{
+            position: 'relative',
 
-        <KpiCard
-          title="Vendas normais"
-          value={safeNumber(
-            kpis.vendas?.total_vendas,
-          )}
-          subtitle={`Exceto Interno Obras e remessas • Custo: ${formatCurrency(
-            custoVendas,
-          )}`}
-          subtitleColor="#4EAAEF"
-          icon={<PaymentsOutlinedIcon />}
-          tone="info"
-          rollDelay={210}
-        />
-
-        <KpiCard
-          title="Interno Obras"
-          value={safeNumber(
-            kpis.interno_obras?.total,
-          )}
-          subtitle={`Custo: ${formatCurrency(
-            custoInternoObras,
-          )}`}
-          subtitleColor="#4EAAEF"
-          icon={
-            <HandymanOutlinedIcon />
-          }
-          tone="secondary"
-          rollDelay={280}
-        />
-
-        <Box sx={{ position: 'relative' }}>
+            gridColumn: {
+              xs: 'auto',
+              sm: 'span 2',
+              md: 'span 2',
+              xl: 'span 2',
+            },
+          }}
+        >
           <BonusBubble
             value={totalBonificados}
             cost={custoBonificados}
           />
 
-          <ReturnsBreakdownCard
-            salesReturns={totalDevolucoes}
-            internalReturns={
-              totalDevolucoesInternoObras
-            }
-            salesReturnCost={
-              custoDevolucoes
-            }
-            internalReturnCost={
-              custoDevolucoesInternoObras
-            }
-            totalReturns={
-              totalGeralDevolucoes
-            }
-            totalReturnCost={
-              custoTotalDevolucoes
-            }
-            rollDelay={350}
+          <ResultBreakdownCard
+            grossMargin={margemBruta}
+            netResult={resultadoLiquido}
+            operationalCost={custoOperacional}
+            rollDelay={420}
           />
         </Box>
       </Box>
