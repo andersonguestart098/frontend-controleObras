@@ -11,12 +11,16 @@ import {
   Card,
   CardContent,
   Chip,
+  Tooltip,
   Typography,
 } from '@mui/material';
 
 import { RollingCurrency } from '@/components/common/RollingCurrency';
 import type { DashboardKpis } from '@/types/dashboard';
-import { formatCurrency } from '@/utils/formatters';
+import {
+  formatCurrency,
+  formatPercentRatio,
+} from '@/utils/formatters';
 
 interface SummarySectionProps {
   kpis: DashboardKpis;
@@ -48,6 +52,11 @@ interface OperationsBreakdownCardProps {
   bonusCost: number;
   returnsCost: number;
 
+  returnsSalesValue: number;
+  returnsSalesCost: number;
+  returnsInternalValue: number;
+  returnsInternalCost: number;
+
   rollDelay?: number;
 }
 
@@ -67,6 +76,12 @@ interface ResultBreakdownCardProps {
   grossMargin: number;
   netResult: number;
   operationalCost: number;
+
+  consolidatedValue: number;
+  totalCost: number;
+  totalTaxes: number;
+  totalCommission: number;
+
   rollDelay?: number;
 }
 
@@ -93,6 +108,17 @@ function safeNumber(
 
 function roundMoney(value: number): number {
   return Number(safeNumber(value).toFixed(2));
+}
+
+function safeRatio(
+  numerator: number,
+  denominator: number,
+): number {
+  if (!denominator) {
+    return 0;
+  }
+
+  return numerator / denominator;
 }
 
 /*
@@ -355,10 +381,21 @@ function ResultBreakdownCard({
   grossMargin,
   netResult,
   operationalCost,
+
+  consolidatedValue,
+  totalCost,
+  totalTaxes,
+  totalCommission,
+
   rollDelay = 300,
 }: ResultBreakdownCardProps) {
   const grossMarginPositive = grossMargin >= 0;
   const netResultPositive = netResult >= 0;
+
+  const netResultPercent = safeRatio(
+    netResult,
+    consolidatedValue,
+  );
 
   const grossMarginColor = grossMarginPositive
     ? '#16a34a'
@@ -377,10 +414,28 @@ function ResultBreakdownCard({
     : 'rgba(220, 38, 38, 0.055)';
 
   return (
+    <Tooltip
+      title={
+        <ResultBreakdownTooltip
+          consolidatedValue={consolidatedValue}
+          totalCost={totalCost}
+          totalTaxes={totalTaxes}
+          totalCommission={totalCommission}
+          grossMargin={grossMargin}
+          operationalCost={operationalCost}
+          netResult={netResult}
+        />
+      }
+      arrow
+      placement="top"
+      slotProps={richTooltipSlotProps}
+    >
     <Card
       sx={{
         height: '100%',
         minHeight: 155,
+
+        cursor: 'help',
 
         borderRadius: 2.5,
         border: 'none',
@@ -528,27 +583,51 @@ function ResultBreakdownCard({
               Resultado líquido
             </Typography>
 
-            <Typography
-              component="div"
+            <Box
               sx={{
-                mt: 0.2,
-                color: netResultColor,
-                fontSize: {
-                  xs: '1.18rem',
-                  md: '1.45rem',
-                },
-                lineHeight: 1.15,
-                fontWeight: 900,
-                letterSpacing: '-0.025em',
-                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'baseline',
+                flexWrap: 'wrap',
+                gap: 0.5,
               }}
             >
-              <RollingCurrency
-                value={netResult}
-                startDelay={rollDelay + 80}
-                delayStep={55}
-              />
-            </Typography>
+              <Typography
+                component="div"
+                sx={{
+                  mt: 0.2,
+                  color: netResultColor,
+                  fontSize: {
+                    xs: '1.18rem',
+                    md: '1.45rem',
+                  },
+                  lineHeight: 1.15,
+                  fontWeight: 900,
+                  letterSpacing: '-0.025em',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <RollingCurrency
+                  value={netResult}
+                  startDelay={rollDelay + 80}
+                  delayStep={55}
+                />
+              </Typography>
+
+              <Typography
+                component="div"
+                sx={{
+                  color: netResultColor,
+                  opacity: 0.72,
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ({formatPercentRatio(
+                  netResultPercent,
+                )})
+              </Typography>
+            </Box>
           </Box>
         </Box>
 
@@ -592,9 +671,499 @@ function ResultBreakdownCard({
         </Box>
       </CardContent>
     </Card>
+    </Tooltip>
   );
 }
 
+
+/*
+ * Conteúdo do tooltip que explica como o valor
+ * de "Devoluções" é composto: devolução normal
+ * (vendas) + devolução de Interno Obras.
+ */
+function ReturnsBreakdownTooltip({
+  salesValue,
+  salesCost,
+  internalValue,
+  internalCost,
+}: {
+  salesValue: number;
+  salesCost: number;
+  internalValue: number;
+  internalCost: number;
+}) {
+  const rows = [
+    {
+      key: 'vendas',
+      label: 'Devolução de vendas',
+      value: salesValue,
+      cost: salesCost,
+      color: '#dc2626',
+    },
+    {
+      key: 'interno_obras',
+      label: 'Devolução Interno Obras',
+      value: internalValue,
+      cost: internalCost,
+      color: '#b91c1c',
+    },
+  ];
+
+  const totalValue =
+    salesValue + internalValue;
+
+  const totalCost =
+    salesCost + internalCost;
+
+  return (
+    <Box
+      sx={{
+        minWidth: 250,
+        p: 0.5,
+      }}
+    >
+      <Typography
+        sx={{
+          color: '#94a3b8',
+          fontSize: '0.66rem',
+          fontWeight: 900,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Composição da devolução
+      </Typography>
+
+      <Box
+        sx={{
+          mt: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.9,
+        }}
+      >
+        {rows.map((row) => (
+          <Box
+            key={row.key}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.5,
+
+              pb: 0.9,
+
+              borderBottom:
+                '1px solid rgba(148, 163, 184, 0.18)',
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.8,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 7,
+                  height: 7,
+                  flexShrink: 0,
+                  borderRadius: '50%',
+                  backgroundColor: row.color,
+                }}
+              />
+
+              <Typography
+                sx={{
+                  color: '#334155',
+                  fontSize: '0.76rem',
+                  fontWeight: 750,
+                }}
+              >
+                {row.label}
+              </Typography>
+            </Box>
+
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography
+                sx={{
+                  color: row.color,
+                  fontSize: '0.82rem',
+                  fontWeight: 900,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                -{formatCurrency(
+                  Math.abs(row.value),
+                )}
+              </Typography>
+
+              <Typography
+                sx={{
+                  mt: 0.15,
+                  color: '#94a3b8',
+                  fontSize: '0.66rem',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Estornado: {formatCurrency(row.cost)}
+              </Typography>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+
+      <Box
+        sx={{
+          mt: 0.9,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+        }}
+      >
+        <Typography
+          sx={{
+            color: '#0f172a',
+            fontSize: '0.72rem',
+            fontWeight: 900,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          Total
+        </Typography>
+
+        <Box sx={{ textAlign: 'right' }}>
+          <Typography
+            sx={{
+              color: '#dc2626',
+              fontSize: '0.85rem',
+              fontWeight: 900,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            -{formatCurrency(
+              Math.abs(totalValue),
+            )}
+          </Typography>
+
+          <Typography
+            sx={{
+              mt: 0.15,
+              color: '#94a3b8',
+              fontSize: '0.66rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Estornado: {formatCurrency(totalCost)}
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+const richTooltipSlotProps = {
+  tooltip: {
+    sx: {
+      backgroundColor: '#ffffff',
+      color: '#0f172a',
+
+      borderRadius: 2.5,
+      border:
+        '1px solid rgba(148, 163, 184, 0.16)',
+
+      boxShadow:
+        '0 16px 36px rgba(15, 23, 42, 0.18), ' +
+        '0 4px 12px rgba(15, 23, 42, 0.08)',
+
+      px: 1.6,
+      py: 1.4,
+    },
+  },
+
+  arrow: {
+    sx: {
+      color: '#ffffff',
+
+      '&::before': {
+        border:
+          '1px solid rgba(148, 163, 184, 0.16)',
+      },
+    },
+  },
+} as const;
+
+/*
+ * Conteúdo do tooltip que explica, em cascata,
+ * como o valor consolidado vira margem bruta e,
+ * depois, resultado líquido.
+ */
+function ResultBreakdownTooltip({
+  consolidatedValue,
+  totalCost,
+  totalTaxes,
+  totalCommission,
+  grossMargin,
+  operationalCost,
+  netResult,
+}: {
+  consolidatedValue: number;
+  totalCost: number;
+  totalTaxes: number;
+  totalCommission: number;
+  grossMargin: number;
+  operationalCost: number;
+  netResult: number;
+}) {
+  const netResultPercent = safeRatio(
+    netResult,
+    consolidatedValue,
+  );
+
+  const deductions = [
+    {
+      key: 'custo',
+      label: 'Custo total',
+      value: totalCost,
+    },
+    {
+      key: 'tributos',
+      label: 'Tributos',
+      value: totalTaxes,
+    },
+    {
+      key: 'comissao',
+      label: 'Comissão',
+      value: totalCommission,
+    },
+  ];
+
+  const rowLabelSx = {
+    color: '#64748b',
+    fontSize: '0.73rem',
+    fontWeight: 700,
+  };
+
+  const rowValueSx = {
+    color: '#dc2626',
+    fontSize: '0.78rem',
+    fontWeight: 850,
+    whiteSpace: 'nowrap',
+  };
+
+  return (
+    <Box
+      sx={{
+        minWidth: 270,
+        p: 0.5,
+      }}
+    >
+      <Typography
+        sx={{
+          color: '#94a3b8',
+          fontSize: '0.66rem',
+          fontWeight: 900,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Composição do resultado
+      </Typography>
+
+      <Box
+        sx={{
+          mt: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+        }}
+      >
+        <Typography
+          sx={{
+            color: '#334155',
+            fontSize: '0.76rem',
+            fontWeight: 800,
+          }}
+        >
+          Valor consolidado
+        </Typography>
+
+        <Typography
+          sx={{
+            color: '#0f172a',
+            fontSize: '0.82rem',
+            fontWeight: 900,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {formatCurrency(consolidatedValue)}
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          mt: 0.75,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.6,
+
+          pl: 1,
+          borderLeft:
+            '2px solid rgba(220, 38, 38, 0.18)',
+        }}
+      >
+        {deductions.map((row) => (
+          <Box
+            key={row.key}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.5,
+            }}
+          >
+            <Typography sx={rowLabelSx}>
+              ({'−'}) {row.label}
+            </Typography>
+
+            <Typography sx={rowValueSx}>
+              -{formatCurrency(
+                Math.abs(row.value),
+              )}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      <Box
+        sx={{
+          mt: 0.9,
+          pt: 0.8,
+
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+
+          borderTop:
+            '1px solid rgba(148, 163, 184, 0.22)',
+        }}
+      >
+        <Typography
+          sx={{
+            color: '#0f172a',
+            fontSize: '0.74rem',
+            fontWeight: 900,
+          }}
+        >
+          Margem bruta
+        </Typography>
+
+        <Typography
+          sx={{
+            color: grossMargin >= 0
+              ? '#16a34a'
+              : '#dc2626',
+            fontSize: '0.84rem',
+            fontWeight: 900,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {formatCurrency(grossMargin)}
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          mt: 0.6,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+
+          pl: 1,
+          borderLeft:
+            '2px solid rgba(220, 38, 38, 0.18)',
+        }}
+      >
+        <Typography sx={rowLabelSx}>
+          ({'−'}) Custo operacional (
+          {OPERATIONAL_COST_PERCENTUAL}%)
+        </Typography>
+
+        <Typography sx={rowValueSx}>
+          -{formatCurrency(
+            Math.abs(operationalCost),
+          )}
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          mt: 0.9,
+          pt: 0.8,
+
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+
+          borderTop:
+            '1px solid rgba(148, 163, 184, 0.22)',
+        }}
+      >
+        <Typography
+          sx={{
+            color: '#0f172a',
+            fontSize: '0.76rem',
+            fontWeight: 900,
+            textTransform: 'uppercase',
+            letterSpacing: '0.03em',
+          }}
+        >
+          Resultado líquido
+        </Typography>
+
+        <Box sx={{ textAlign: 'right' }}>
+          <Typography
+            sx={{
+              color: netResult >= 0
+                ? '#16a34a'
+                : '#dc2626',
+              fontSize: '0.9rem',
+              fontWeight: 900,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatCurrency(netResult)}
+          </Typography>
+
+          <Typography
+            sx={{
+              color: netResult >= 0
+                ? '#16a34a'
+                : '#dc2626',
+              opacity: 0.72,
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatPercentRatio(
+              netResultPercent,
+            )}
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
 
 /*
  * Card unificado das operações.
@@ -614,9 +1183,22 @@ function OperationsBreakdownCard({
   bonusCost,
   returnsCost,
 
+  returnsSalesValue,
+  returnsSalesCost,
+  returnsInternalValue,
+  returnsInternalCost,
+
   rollDelay = 210,
 }: OperationsBreakdownCardProps) {
-  const items = [
+  const items: Array<{
+    key: string;
+    label: string;
+    value: number;
+    costLabel: string;
+    cost: number;
+    color: string;
+    breakdown?: ReactNode;
+  }> = [
     {
       key: 'vendas',
       label: 'Vendas',
@@ -648,6 +1230,14 @@ function OperationsBreakdownCard({
       costLabel: 'Custo estornado',
       cost: returnsCost,
       color: '#dc2626',
+      breakdown: (
+        <ReturnsBreakdownTooltip
+          salesValue={returnsSalesValue}
+          salesCost={returnsSalesCost}
+          internalValue={returnsInternalValue}
+          internalCost={returnsInternalCost}
+        />
+      ),
     },
   ];
 
@@ -762,93 +1352,140 @@ function OperationsBreakdownCard({
             mt: 1.15,
           }}
         >
-          {items.map((item, index) => (
-            <Box
-              key={item.key}
-              sx={{
-                minWidth: 0,
-
-                px: {
-                  xs: 0,
-                  sm: index === 0 ? 0 : 1.35,
-                },
-
-                borderLeft: {
-                  xs: 'none',
-                  sm:
-                    index === 0
-                      ? 'none'
-                      : '1px solid rgba(148, 163, 184, 0.20)',
-                },
-
-                borderTop: {
-                  xs:
-                    index === 0
-                      ? 'none'
-                      : '1px solid rgba(148, 163, 184, 0.14)',
-                  sm: 'none',
-                },
-
-                pt: {
-                  xs: index === 0 ? 0 : 1,
-                  sm: 0,
-                },
-              }}
-            >
-              <Typography
-                variant="caption"
+          {items.map((item, index) => {
+            const itemBox = (
+              <Box
+                key={item.key}
                 sx={{
-                  display: 'block',
-                  color: item.color,
-                  fontSize: '0.62rem',
-                  fontWeight: 900,
-                  letterSpacing: '0.03em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {item.label}
-              </Typography>
+                  minWidth: 0,
+                  height: '100%',
 
-              <Typography
-                component="div"
-                sx={{
-                  mt: 0.18,
-                  color: '#0f172a',
-                  fontSize: {
-                    xs: '1.15rem',
-                    md: '1.2rem',
+                  px: {
+                    xs: 0,
+                    sm: index === 0 ? 0 : 1.35,
                   },
-                  lineHeight: 1.15,
-                  fontWeight: 900,
-                  letterSpacing: '-0.03em',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <RollingCurrency
-                  value={item.value}
-                  startDelay={
-                    rollDelay + index * 70
-                  }
-                  delayStep={55}
-                />
-              </Typography>
 
-              <Typography
-                variant="caption"
-                sx={{
-                  display: 'block',
-                  mt: 0.45,
-                  color: item.color,
-                  fontSize: '0.65rem',
-                  fontWeight: 750,
-                  lineHeight: 1.2,
+                  py: item.breakdown
+                    ? 0.5
+                    : 0,
+
+                  mx: item.breakdown
+                    ? -0.5
+                    : 0,
+
+                  borderRadius: item.breakdown
+                    ? 1.5
+                    : 0,
+
+                  borderLeft: {
+                    xs: 'none',
+                    sm:
+                      index === 0
+                        ? 'none'
+                        : '1px solid rgba(148, 163, 184, 0.20)',
+                  },
+
+                  borderTop: {
+                    xs:
+                      index === 0
+                        ? 'none'
+                        : '1px solid rgba(148, 163, 184, 0.14)',
+                    sm: 'none',
+                  },
+
+                  pt: {
+                    xs: index === 0 ? 0 : 1,
+                    sm: 0,
+                  },
+
+                  cursor: item.breakdown
+                    ? 'help'
+                    : 'default',
+
+                  transition:
+                    'background-color 150ms ease',
+
+                  ...(item.breakdown
+                    ? {
+                        '&:hover': {
+                          backgroundColor:
+                            'rgba(220, 38, 38, 0.045)',
+                        },
+                      }
+                    : {}),
                 }}
               >
-                {item.costLabel}:{' '}
-                {formatCurrency(item.cost)}
-              </Typography>
-            </Box>
-          ))}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    color: item.color,
+                    fontSize: '0.62rem',
+                    fontWeight: 900,
+                    letterSpacing: '0.03em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {item.label}
+                </Typography>
+
+                <Typography
+                  component="div"
+                  sx={{
+                    mt: 0.18,
+                    color: '#0f172a',
+                    fontSize: {
+                      xs: '1.15rem',
+                      md: '1.2rem',
+                    },
+                    lineHeight: 1.15,
+                    fontWeight: 900,
+                    letterSpacing: '-0.03em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <RollingCurrency
+                    value={item.value}
+                    startDelay={
+                      rollDelay + index * 70
+                    }
+                    delayStep={55}
+                  />
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    mt: 0.45,
+                    color: item.color,
+                    fontSize: '0.65rem',
+                    fontWeight: 750,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {item.costLabel}:{' '}
+                  {formatCurrency(item.cost)}
+                </Typography>
+              </Box>
+            );
+
+            return item.breakdown ? (
+              <Tooltip
+                key={item.key}
+                title={item.breakdown}
+                arrow
+                placement="top"
+                slotProps={
+                  richTooltipSlotProps
+                }
+              >
+                {itemBox}
+              </Tooltip>
+            ) : (
+              itemBox
+            );
+          })}
         </Box>
       </CardContent>
     </Card>
@@ -1809,6 +2446,14 @@ export function SummarySection({
             internalCost={custoInternoObras}
             bonusCost={custoBonificados}
             returnsCost={custoTotalDevolucoes}
+            returnsSalesValue={totalDevolucoes}
+            returnsSalesCost={custoDevolucoes}
+            returnsInternalValue={
+              totalDevolucoesInternoObras
+            }
+            returnsInternalCost={
+              custoDevolucoesInternoObras
+            }
             rollDelay={210}
           />
         </Box>
@@ -1831,6 +2476,10 @@ export function SummarySection({
             grossMargin={margemBruta}
             netResult={resultadoLiquido}
             operationalCost={custoOperacional}
+            consolidatedValue={valorConsolidado}
+            totalCost={totalCusto}
+            totalTaxes={totalImpostos}
+            totalCommission={totalComissao}
             rollDelay={420}
           />
         </Box>

@@ -17,7 +17,10 @@ import type {
   ImpostoGrupoKpis,
   ImpostosKpis,
 } from '@/types/dashboard';
-import { formatCurrency } from '@/utils/formatters';
+import {
+  formatCurrency,
+  formatPercentRatio,
+} from '@/utils/formatters';
 
 interface TaxSummaryTableProps {
   kpis: DashboardKpis | null | undefined;
@@ -57,6 +60,7 @@ interface SummaryItemProps {
   value: number;
   color: string;
   backgroundColor: string;
+  percent?: number;
 }
 
 const IRPJ_CSSL_PERCENTUAL = 3.35;
@@ -311,6 +315,7 @@ function SummaryItem({
   value,
   color,
   backgroundColor,
+  percent,
 }: SummaryItemProps) {
   return (
     <Box
@@ -344,22 +349,46 @@ function SummaryItem({
         {title}
       </Typography>
 
-      <Typography
+      <Box
         sx={{
           mt: 0.35,
 
-          color,
-
-          fontSize: '1.05rem',
-          lineHeight: 1.2,
-          fontWeight: 900,
-          letterSpacing: '-0.02em',
+          display: 'flex',
+          alignItems: 'baseline',
+          flexWrap: 'wrap',
+          gap: 0.5,
         }}
       >
-        {formatCurrency(
-          safeNumber(value),
-        )}
-      </Typography>
+        <Typography
+          sx={{
+            color,
+
+            fontSize: '1.05rem',
+            lineHeight: 1.2,
+            fontWeight: 900,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {formatCurrency(
+            safeNumber(value),
+          )}
+        </Typography>
+
+        {percent !== undefined ? (
+          <Typography
+            sx={{
+              color,
+              opacity: 0.72,
+
+              fontSize: '0.76rem',
+              fontWeight: 800,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ({formatPercentRatio(percent)})
+          </Typography>
+        ) : null}
+      </Box>
     </Box>
   );
 }
@@ -1296,6 +1325,12 @@ export function TaxSummaryTable({
       ).toFixed(2),
     );
 
+  const resultadoLiquidoPercent =
+    valorConsolidado
+      ? resultadoLiquido /
+        valorConsolidado
+      : 0;
+
   const rows: TaxTableRow[] = [
     {
       key: 'vendas',
@@ -1681,6 +1716,7 @@ export function TaxSummaryTable({
           <SummaryItem
             title={`Resultado líquido (-${CUSTO_OPERACIONAL_PERCENTUAL}% operacional)`}
             value={resultadoLiquido}
+            percent={resultadoLiquidoPercent}
             color={
               resultadoLiquido >= 0
                 ? '#2563eb'
