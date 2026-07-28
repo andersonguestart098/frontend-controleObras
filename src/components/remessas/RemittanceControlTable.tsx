@@ -890,7 +890,7 @@ export function RemittanceControlTable({
         <TableContainer
           sx={{
             maxHeight: 390,
-            overflowX: 'hidden',
+            overflowX: 'auto',
             overflowY: 'auto',
 
             borderTop:
@@ -902,6 +902,7 @@ export function RemittanceControlTable({
 
             '&::-webkit-scrollbar': {
               width: 8,
+              height: 8,
             },
 
             '&::-webkit-scrollbar-track': {
@@ -921,7 +922,7 @@ export function RemittanceControlTable({
             stickyHeader
             size="small"
             sx={{
-              width: '100%',
+              minWidth: 990,
               tableLayout: 'fixed',
             }}
           >
@@ -930,7 +931,7 @@ export function RemittanceControlTable({
                 <TableCell
                   sx={{
                     ...tableHeaderCellSx,
-                    width: '29%',
+                    width: 260,
                   }}
                 >
                   Material
@@ -939,7 +940,7 @@ export function RemittanceControlTable({
                 <TableCell
                   sx={{
                     ...tableHeaderCellSx,
-                    width: '12%',
+                    width: 140,
                   }}
                 >
                   Quantidades
@@ -948,7 +949,7 @@ export function RemittanceControlTable({
                 <TableCell
                   sx={{
                     ...tableHeaderCellSx,
-                    width: '18%',
+                    width: 170,
                   }}
                 >
                   Valores
@@ -957,7 +958,7 @@ export function RemittanceControlTable({
                 <TableCell
                   sx={{
                     ...tableHeaderCellSx,
-                    width: '18%',
+                    width: 170,
                   }}
                 >
                   Custos sem ICMS
@@ -966,7 +967,7 @@ export function RemittanceControlTable({
                 <TableCell
                   sx={{
                     ...tableHeaderCellSx,
-                    width: '13%',
+                    width: 140,
                   }}
                 >
                   Progresso
@@ -976,7 +977,7 @@ export function RemittanceControlTable({
                   align="center"
                   sx={{
                     ...tableHeaderCellSx,
-                    width: '10%',
+                    width: 110,
                   }}
                 >
                   Status

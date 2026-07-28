@@ -142,16 +142,6 @@ const bodyCellSx = {
   whiteSpace: 'nowrap',
 };
 
-/*
- * A coluna de origem fica fixa na esquerda
- * quando ainda sobra scroll horizontal.
- */
-const stickyCellSx = {
-  position: 'sticky',
-  left: 0,
-  zIndex: 2,
-};
-
 function safeNumber(
   value: number | null | undefined,
 ): number {
@@ -1896,10 +1886,7 @@ export function TaxSummaryTable({
           <TableHead>
             <TableRow>
               <TableCell
-                sx={{
-                  ...headerCellSx,
-                  ...stickyCellSx,
-                }}
+                sx={headerCellSx}
               >
                 Origem
               </TableCell>
@@ -2071,11 +2058,6 @@ export function TaxSummaryTable({
                     '&:hover': {
                       backgroundColor:
                         rowHoverBackground,
-
-                      '& td.origem-fixa': {
-                        backgroundColor:
-                          rowHoverBackground,
-                      },
                     },
 
                     '&:last-child td': {
@@ -2085,13 +2067,8 @@ export function TaxSummaryTable({
                   }}
                 >
                   <TableCell
-                    className="origem-fixa"
                     sx={{
                       ...bodyCellSx,
-                      ...stickyCellSx,
-
-                      backgroundColor:
-                        rowBackground,
 
                       color: negative
                         ? taxColors
