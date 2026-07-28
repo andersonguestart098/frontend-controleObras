@@ -6,7 +6,12 @@ import {
 
 import type { EChartsOption } from 'echarts';
 
-import { Box, Typography } from '@mui/material';
+import {
+  Box,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 
 import { EChart } from '@/components/charts/EChart';
 import { useInViewOnce } from '@/components/common/RollingCurrency';
@@ -23,20 +28,7 @@ interface RemittanceQuantities {
 
 interface RemittanceProgressChartProps {
   data: RemessaFuturaKpis;
-
-  /*
-   * Resumo do controle de remessas, o mesmo
-   * que alimenta a tabela de materiais.
-   *
-   * É daqui que sai o percentual de produto
-   * entregue.
-   */
   resumo?: RemessaControlResumo;
-
-  /*
-   * Alternativa quando só as quantidades
-   * estão disponíveis.
-   */
   quantidades?: RemittanceQuantities;
 }
 
@@ -49,11 +41,6 @@ interface GaugeConfig {
   delay: number;
 }
 
-/*
- * Só usamos esses dois easings, tipados como
- * literal para o TypeScript aceitar em
- * animationEasingUpdate.
- */
 type GaugeEasing = 'cubicIn' | 'cubicOut';
 
 interface GaugeFrame {
@@ -68,15 +55,6 @@ interface RevStep {
   easing: GaugeEasing;
 }
 
-const GAUGE_HEIGHT = 230;
-
-/*
- * Aceleradas do ponteiro antes de assentar.
- *
- * ratio é a fração do valor final, então o
- * ponteiro sobe, alivia, sobe mais, alivia de
- * novo, passa um pouco do alvo e volta.
- */
 const REV_STEPS: RevStep[] = [
   { ratio: 0.42, duration: 380, easing: 'cubicOut' },
   { ratio: 0.24, duration: 260, easing: 'cubicIn' },
@@ -94,10 +72,11 @@ function calculatePercent(
     return 0;
   }
 
-  const percent = (parte / total) * 100;
-
   return Number(
-    Math.min(Math.max(percent, 0), 100).toFixed(1),
+    Math.min(
+      Math.max((parte / total) * 100, 0),
+      100,
+    ).toFixed(1),
   );
 }
 
@@ -110,9 +89,13 @@ function clampPercent(value: number): number {
 function GaugeCard({
   config,
   active,
+  height,
+  isMobile,
 }: {
   config: GaugeConfig;
   active: boolean;
+  height: number;
+  isMobile: boolean;
 }) {
   const [frame, setFrame] =
     useState<GaugeFrame>({
@@ -121,9 +104,6 @@ function GaugeCard({
       easing: 'cubicOut',
     });
 
-  /*
-   * Sequência de aceleradas até o valor real.
-   */
   useEffect(() => {
     if (!active) {
       setFrame({
@@ -151,7 +131,6 @@ function GaugeCard({
     }
 
     const timers: number[] = [];
-
     let elapsed = config.delay;
 
     REV_STEPS.forEach((step) => {
@@ -161,7 +140,6 @@ function GaugeCard({
             value: clampPercent(
               config.percent * step.ratio,
             ),
-
             duration: step.duration,
             easing: step.easing,
           });
@@ -180,24 +158,20 @@ function GaugeCard({
 
   const option = useMemo<EChartsOption>(
     () => ({
-      /*
-       * Entra parado no zero e todo o movimento
-       * acontece nas atualizações.
-       */
       animationDuration: 0,
-
       animationDurationUpdate: frame.duration,
       animationEasingUpdate: frame.easing,
 
       series: [
         {
           type: 'gauge',
-
           startAngle: 210,
           endAngle: -30,
-
           min: 0,
           max: 100,
+
+          center: ['50%', isMobile ? '48%' : '50%'],
+          radius: isMobile ? '84%' : '88%',
 
           animationDuration: 0,
           animationDurationUpdate:
@@ -206,8 +180,7 @@ function GaugeCard({
 
           progress: {
             show: true,
-            width: 16,
-
+            width: isMobile ? 14 : 20,
             itemStyle: {
               color: config.color,
             },
@@ -215,7 +188,7 @@ function GaugeCard({
 
           axisLine: {
             lineStyle: {
-              width: 16,
+              width: isMobile ? 14 : 20,
               color: [[1, '#e2e8f0']],
             },
           },
@@ -227,23 +200,25 @@ function GaugeCard({
           anchor: { show: false },
 
           title: {
-            offsetCenter: [0, '52%'],
-
+            offsetCenter: [
+              0,
+              isMobile ? '54%' : '56%',
+            ],
             color: '#64748b',
-            fontSize: 13,
-            fontWeight: 600,
+            fontSize: isMobile ? 12 : 15,
+            fontWeight: 650,
           },
 
           detail: {
             valueAnimation: true,
-
             formatter: '{value}%',
-
             color: '#0f172a',
-            fontSize: 26,
-            fontWeight: 800,
-
-            offsetCenter: [0, '4%'],
+            fontSize: isMobile ? 25 : 34,
+            fontWeight: 900,
+            offsetCenter: [
+              0,
+              isMobile ? '1%' : '2%',
+            ],
           },
 
           data: [
@@ -255,7 +230,7 @@ function GaugeCard({
         },
       ],
     }),
-    [config, frame],
+    [config, frame, isMobile],
   );
 
   return (
@@ -263,22 +238,27 @@ function GaugeCard({
       sx={{
         minWidth: 0,
         width: '100%',
-
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+
+        px: {
+          xs: 0,
+          sm: 0.5,
+          lg: 1,
+        },
       }}
     >
       {active ? (
         <EChart
           option={option}
-          height={GAUGE_HEIGHT}
+          height={height}
         />
       ) : (
         <Box
           sx={{
             width: '100%',
-            height: GAUGE_HEIGHT,
+            height,
           }}
         />
       )}
@@ -286,13 +266,18 @@ function GaugeCard({
       <Typography
         variant="caption"
         sx={{
-          mt: -1,
-
+          mt: {
+            xs: -0.5,
+            md: -1,
+          },
+          px: 1,
           color: '#94a3b8',
-
-          fontSize: '0.7rem',
-          fontWeight: 600,
-
+          fontSize: {
+            xs: '0.72rem',
+            md: '0.82rem',
+          },
+          fontWeight: 650,
+          lineHeight: 1.35,
           textAlign: 'center',
         }}
       >
@@ -307,17 +292,28 @@ export function RemittanceProgressChart({
   resumo,
   quantidades,
 }: RemittanceProgressChartProps) {
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(
+    theme.breakpoints.down('sm'),
+  );
+
+  const isTablet = useMediaQuery(
+    theme.breakpoints.between('sm', 'lg'),
+  );
+
+  const gaugeHeight = isMobile
+    ? 215
+    : isTablet
+      ? 275
+      : 320;
+
   const [containerRef, inView] =
     useInViewOnce(
-      0.45,
-      '0px 0px -160px 0px',
+      0.35,
+      '0px 0px -100px 0px',
     );
 
-  /*
-   * A quantidade pode chegar de três lugares:
-   * pelo resumo do controle de remessas, por
-   * prop direta ou dentro dos próprios KPIs.
-   */
   const quantidadesFinais = useMemo<
     RemittanceQuantities | null
   >(() => {
@@ -356,62 +352,46 @@ export function RemittanceProgressChart({
         {
           key: 'valor',
           title: 'Valor entregue',
-
           percent: calculatePercent(
             data.total_entregue,
             data.total_faturamento,
           ),
-
           color: '#4f6edb',
-
           helper: `${formatCurrency(
             data.total_entregue,
           )} de ${formatCurrency(
             data.total_faturamento,
           )}`,
-
           delay: 0,
         },
 
         {
           key: 'custo',
           title: 'Custo entregue',
-
           percent: calculatePercent(
             data.custo_entregue,
             data.custo_total,
           ),
-
           color: '#C18D34',
-
           helper: `${formatCurrency(
             data.custo_entregue,
           )} de ${formatCurrency(
             data.custo_total,
           )}`,
-
           delay: 650,
         },
       ];
 
-      /*
-       * O terceiro velocímetro entra embaixo,
-       * centralizado entre os dois de cima.
-       */
       if (quantidadesFinais) {
         lista.push({
           key: 'produto',
           title: 'Produto entregue',
-
           percent: calculatePercent(
             quantidadesFinais.qtd_entregue,
             quantidadesFinais.qtd_total,
           ),
-
           color: '#0d9488',
-
           helper: `${quantidadesFinais.qtd_entregue} de ${quantidadesFinais.qtd_total} unidades`,
-
           delay: 1300,
         });
       }
@@ -426,57 +406,55 @@ export function RemittanceProgressChart({
       ref={containerRef}
       sx={{
         width: '100%',
+        maxWidth: 'none',
+        minWidth: 0,
 
         display: 'grid',
 
         gridTemplateColumns: {
           xs: '1fr',
-          sm: 'repeat(2, minmax(0, 1fr))',
+          sm:
+            gauges.length === 3
+              ? 'repeat(3, minmax(0, 1fr))'
+              : 'repeat(2, minmax(0, 1fr))',
         },
 
-        gap: 1,
+        alignItems: 'start',
+
+        gap: {
+          xs: 1.5,
+          sm: 2,
+          lg: 2.5,
+        },
+
+        px: {
+          xs: 0,
+          sm: 1,
+          lg: 1.5,
+        },
+
+        py: {
+          xs: 0.5,
+          md: 1,
+        },
       }}
     >
-      {gauges.map((config, index) => {
-        /*
-         * O terceiro ocupa a linha inteira e
-         * fica centralizado.
-         */
-        const centralizado =
-          gauges.length === 3 && index === 2;
-
-        return (
-          <Box
-            key={config.key}
-            sx={{
-              minWidth: 0,
-
-              gridColumn: centralizado
-                ? {
-                    xs: 'auto',
-                    sm: '1 / -1',
-                  }
-                : 'auto',
-
-              justifySelf: 'center',
-
-              width: '100%',
-
-              maxWidth: centralizado
-                ? {
-                    xs: '100%',
-                    sm: '52%',
-                  }
-                : '100%',
-            }}
-          >
-            <GaugeCard
-              config={config}
-              active={inView}
-            />
-          </Box>
-        );
-      })}
+      {gauges.map((config) => (
+        <Box
+          key={config.key}
+          sx={{
+            minWidth: 0,
+            width: '100%',
+          }}
+        >
+          <GaugeCard
+            config={config}
+            active={inView}
+            height={gaugeHeight}
+            isMobile={isMobile}
+          />
+        </Box>
+      ))}
     </Box>
   );
 }

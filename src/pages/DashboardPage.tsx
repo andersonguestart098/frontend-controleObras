@@ -663,8 +663,11 @@ export function DashboardPage() {
       </Box>
 
       <Container
-        maxWidth="xl"
+        maxWidth={false}
         sx={{
+          maxWidth: 1800,
+          mx: 'auto',
+
           mt: {
             xs: -6,
             md: -6.5,
@@ -763,56 +766,189 @@ export function DashboardPage() {
                 <Box
                   sx={{
                     display: 'grid',
-                    gap: 2,
 
+                    alignItems: 'stretch',
+
+                    gap: {
+                      xs: 2,
+                      sm: 2.5,
+                      lg: 3.5,
+                    },
+
+                    /*
+                     * Os três cards ficam com a mesma
+                     * largura no desktop.
+                     *
+                     * No mobile e tablet entram em uma
+                     * coluna para não comprimir gráficos,
+                     * títulos, legendas e valores.
+                     */
                     gridTemplateColumns: {
-                      xs: '1fr',
-                      lg: '1.5fr 1fr 1fr',
+                      xs: 'minmax(0, 1fr)',
+                      lg:
+                        'repeat(3, minmax(0, 1fr))',
+                    },
+
+                    '& > *': {
+                      width: '100%',
+                      minWidth: 0,
+                      height: '100%',
                     },
                   }}
                 >
-                  <Card sx={contentCardSx}>
-                    <CardContent>
+                  <Card
+                    sx={{
+                      ...contentCardSx,
+
+                      height: '100%',
+                      minWidth: 0,
+                    }}
+                  >
+                    <CardContent
+                      sx={{
+                        height: '100%',
+
+                        display: 'flex',
+                        flexDirection: 'column',
+
+                        p: {
+                          xs: 2,
+                          md: 2.4,
+                          lg: 2.75,
+                        },
+
+                        '&:last-child': {
+                          pb: {
+                            xs: 2,
+                            md: 2.4,
+                            lg: 2.75,
+                          },
+                        },
+                      }}
+                    >
                       <SectionHeader
                         title="Composição das operações"
                         description="Comparativo por origem."
                       />
 
-                      <SalesCompositionChart
-                        kpis={dashboard.data.kpis}
-                      />
+                      <Box
+                        sx={{
+                          minWidth: 0,
+                          width: '100%',
+                          flex: 1,
+                        }}
+                      >
+                        <SalesCompositionChart
+                          kpis={
+                            dashboard.data.kpis
+                          }
+                        />
+                      </Box>
                     </CardContent>
                   </Card>
 
-                  <Card sx={contentCardSx}>
-                    <CardContent>
+                  <Card
+                    sx={{
+                      ...contentCardSx,
+
+                      height: '100%',
+                      minWidth: 0,
+                    }}
+                  >
+                    <CardContent
+                      sx={{
+                        height: '100%',
+
+                        display: 'flex',
+                        flexDirection: 'column',
+
+                        p: {
+                          xs: 2,
+                          md: 2.4,
+                          lg: 2.75,
+                        },
+
+                        '&:last-child': {
+                          pb: {
+                            xs: 2,
+                            md: 2.4,
+                            lg: 2.75,
+                          },
+                        },
+                      }}
+                    >
                       <SectionHeader
                         title="Progresso da remessa"
                         description="Percentual entregue em valor."
                       />
 
-                      <RemittanceProgressChart
-                        data={
-                          dashboard.data.kpis
-                            .remessa_futura
-                        }
-                      />
+                      <Box
+                        sx={{
+                          minWidth: 0,
+                          width: '100%',
+                          flex: 1,
+                        }}
+                      >
+                        <RemittanceProgressChart
+                          data={
+                            dashboard.data.kpis
+                              .remessa_futura
+                          }
+                        />
+                      </Box>
                     </CardContent>
                   </Card>
 
-                  <Card sx={contentCardSx}>
-                    <CardContent>
+                  <Card
+                    sx={{
+                      ...contentCardSx,
+
+                      height: '100%',
+                      minWidth: 0,
+                    }}
+                  >
+                    <CardContent
+                      sx={{
+                        height: '100%',
+
+                        display: 'flex',
+                        flexDirection: 'column',
+
+                        p: {
+                          xs: 2,
+                          md: 2.4,
+                          lg: 2.75,
+                        },
+
+                        '&:last-child': {
+                          pb: {
+                            xs: 2,
+                            md: 2.4,
+                            lg: 2.75,
+                          },
+                        },
+                      }}
+                    >
                       <SectionHeader
                         title="Encargos consolidados"
                         description="Tributos e comissão."
                       />
 
-                      <TaxBreakdownChart
-                        data={
-                          dashboard.data.kpis.impostos
-                            .consolidado_liquido
-                        }
-                      />
+                      <Box
+                        sx={{
+                          minWidth: 0,
+                          width: '100%',
+                          flex: 1,
+                        }}
+                      >
+                        <TaxBreakdownChart
+                          data={
+                            dashboard.data.kpis
+                              .impostos
+                              .consolidado_liquido
+                          }
+                        />
+                      </Box>
                     </CardContent>
                   </Card>
                 </Box>

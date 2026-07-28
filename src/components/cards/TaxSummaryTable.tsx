@@ -615,24 +615,7 @@ export function TaxSummaryTable({
       <Card
         component="section"
         sx={{
-          width: {
-            xs: '100%',
-            lg: 'min(1800px, calc(100vw - 32px))',
-          },
-
-          maxWidth: 'none',
-
-          position: {
-            lg: 'relative',
-          },
-
-          left: {
-            lg: '50%',
-          },
-
-          transform: {
-            lg: 'translateX(-50%)',
-          },
+          width: '100%',
 
           border: 'none',
           borderRadius: 3,
@@ -1546,24 +1529,7 @@ export function TaxSummaryTable({
     <Card
       component="section"
       sx={{
-        width: {
-          xs: '100%',
-          lg: 'min(1800px, calc(100vw - 32px))',
-        },
-
-        maxWidth: 'none',
-
-        position: {
-          lg: 'relative',
-        },
-
-        left: {
-          lg: '50%',
-        },
-
-        transform: {
-          lg: 'translateX(-50%)',
-        },
+        width: '100%',
 
         border: 'none',
         borderRadius: 3,

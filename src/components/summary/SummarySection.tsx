@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 
 import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
-import MoneyOffCsredOutlinedIcon from '@mui/icons-material/MoneyOffCsredOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
@@ -38,19 +37,15 @@ interface CostBreakdownMetricProps {
   backgroundColor: string;
 }
 
-interface BonusBubbleProps {
-  value: number;
-  cost: number;
-  rollDelay?: number;
-}
-
 interface OperationsBreakdownCardProps {
   salesValue: number;
   internalValue: number;
+  bonusValue: number;
   returnsValue: number;
 
   salesCost: number;
   internalCost: number;
+  bonusCost: number;
   returnsCost: number;
 
   rollDelay?: number;
@@ -86,33 +81,6 @@ const IRPJ_CSSL_RATE = 0.0335;
 const OPERATIONAL_COST_RATE = 0.17;
 const OPERATIONAL_COST_PERCENTUAL = 17;
 
-/*
- * Rastro de bolhas subindo pela direita do
- * card até o balão.
- *
- * Todos os right são negativos, então as
- * bolhas ficam fora do card.
- *
- * A curva abre rápido para a direita e depois
- * sobe quase reta, formando o C deitado até o
- * balão.
- *
- * A última bolha encosta no centro da borda de
- * baixo do balão.
- *
- * O centro do balão fica a 105px da borda do
- * card: 16px de margem mais metade dos 178px
- * de largura mínima.
- */
-const BUBBLE_TRAIL = [
-  { size: 6, bottom: 6, right: -10 },
-  { size: 8, bottom: 32, right: -46 },
-  { size: 10, bottom: 62, right: -74 },
-  { size: 11, bottom: 92, right: -94 },
-  { size: 12, bottom: 117, right: -106 },
-  { size: 14, bottom: 137, right: -112 },
-];
-
 function safeNumber(
   value: number | null | undefined,
 ): number {
@@ -126,261 +94,6 @@ function safeNumber(
 function roundMoney(value: number): number {
   return Number(safeNumber(value).toFixed(2));
 }
-
-/*
- * Balão flutuante com o dado de bonificações.
- *
- * No desktop ele sai do fluxo e fica pairando
- * acima do card de resultado. No mobile entra
- * na coluna, logo acima do card.
- */
-function BonusBubble({
-  value,
-  cost,
-  rollDelay = 380,
-}: BonusBubbleProps) {
-  return (
-    <>
-      {/* RASTRO EM CURVA */}
-      {BUBBLE_TRAIL.map((bubble, index) => (
-        <Box
-          key={bubble.size}
-          aria-hidden="true"
-          sx={{
-            position: 'absolute',
-
-            display: {
-              xs: 'none',
-              xl: 'block',
-            },
-
-            bottom: bubble.bottom,
-            right: bubble.right,
-
-            width: bubble.size,
-            height: bubble.size,
-
-            borderRadius: '50%',
-
-            background:
-              'linear-gradient(135deg, #fffaf5 0%, #ffedd5 100%)',
-
-            border:
-              '1px solid rgba(221, 127, 19, 0.28)',
-
-            boxShadow:
-              '0 3px 8px rgba(180, 102, 13, 0.18)',
-
-            zIndex: 2,
-
-            animation: `bonusFloat 4.2s ease-in-out ${
-              700 + index * 130
-            }ms infinite`,
-
-            '@keyframes bonusFloat': {
-              '0%, 100%': {
-                transform: 'translateY(0)',
-              },
-
-              '50%': {
-                transform: 'translateY(-6px)',
-              },
-            },
-
-            '@media (prefers-reduced-motion: reduce)':
-              {
-                animation: 'none',
-              },
-          }}
-        />
-      ))}
-
-      {/* BALÃO */}
-      <Box
-        sx={{
-          position: {
-            xs: 'relative',
-            md: 'absolute',
-          },
-
-          /*
-           * Em telas largas o balão sai pela
-           * direita do card, desacoplado.
-           *
-           * Abaixo disso não há espaço lateral,
-           * então ele volta para cima do card.
-           */
-          top: {
-            md: -92,
-            xl: 'auto',
-          },
-
-          right: {
-            md: 2,
-            xl: 'auto',
-          },
-
-          bottom: {
-            xl: 150,
-          },
-
-          left: {
-            xl: '100%',
-          },
-
-          ml: {
-            xl: 2,
-          },
-
-          mr: {
-            md: 1,
-            xl: 0,
-          },
-
-          zIndex: 3,
-
-          mb: {
-            xs: 1.2,
-            md: 0,
-          },
-
-          px: 2.9,
-          py: 2.1,
-
-          minWidth: {
-            xl: 178,
-          },
-
-          display: 'inline-flex',
-          flexDirection: 'column',
-
-          whiteSpace: 'nowrap',
-
-          borderRadius: '24px 24px 10px 24px',
-
-          background:
-            'linear-gradient(135deg, #fffaf5 0%, #ffedd5 100%)',
-
-          border:
-            '1px solid rgba(221, 127, 19, 0.22)',
-
-          boxShadow:
-            '0 12px 30px rgba(180, 102, 13, 0.2), ' +
-            '0 2px 6px rgba(15, 23, 42, 0.05)',
-
-          transformOrigin: 'bottom right',
-
-          animation:
-            'bonusPop 560ms cubic-bezier(0.22, 1, 0.36, 1) both, ' +
-            'bonusFloat 4.2s ease-in-out 560ms infinite',
-
-          transition:
-            'transform 200ms ease, box-shadow 200ms ease',
-
-          '&:hover': {
-            boxShadow:
-              '0 16px 38px rgba(221, 127, 19, 0.28), ' +
-              '0 3px 8px rgba(15, 23, 42, 0.06)',
-          },
-
-          '@keyframes bonusPop': {
-            '0%': {
-              opacity: 0,
-              transform:
-                'translateY(10px) scale(0.92)',
-            },
-
-            '100%': {
-              opacity: 1,
-              transform:
-                'translateY(0) scale(1)',
-            },
-          },
-
-          '@keyframes bonusFloat': {
-            '0%, 100%': {
-              transform: 'translateY(0)',
-            },
-
-            '50%': {
-              transform: 'translateY(-6px)',
-            },
-          },
-
-          '@media (prefers-reduced-motion: reduce)':
-            {
-              animation: 'none',
-              opacity: 1,
-            },
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.7,
-          }}
-        >
-          <MoneyOffCsredOutlinedIcon
-            sx={{
-              fontSize: 17,
-              color: BUBBLE_COLOR,
-            }}
-          />
-
-          <Typography
-            variant="caption"
-            sx={{
-              color: BUBBLE_COLOR,
-
-              fontSize: '0.68rem',
-              fontWeight: 900,
-
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Bonificações
-          </Typography>
-        </Box>
-
-        <Typography
-          component="div"
-          sx={{
-            mt: 0.5,
-
-            color: '#0f172a',
-
-            fontSize: '1.5rem',
-            lineHeight: 1.15,
-            fontWeight: 900,
-            letterSpacing: '-0.025em',
-          }}
-        >
-          <RollingCurrency
-            value={value}
-            startDelay={rollDelay}
-          />
-        </Typography>
-
-        <Typography
-          variant="caption"
-          sx={{
-            mt: 0.5,
-
-            color: BUBBLE_COLOR,
-
-            fontSize: '0.78rem',
-            fontWeight: 700,
-          }}
-        >
-          Custo: {formatCurrency(cost)}
-        </Typography>
-      </Box>
-    </>
-  );
-}
-
 
 /*
  * Card unificado das remessas.
@@ -893,10 +606,12 @@ function ResultBreakdownCard({
 function OperationsBreakdownCard({
   salesValue,
   internalValue,
+  bonusValue,
   returnsValue,
 
   salesCost,
   internalCost,
+  bonusCost,
   returnsCost,
 
   rollDelay = 210,
@@ -917,6 +632,14 @@ function OperationsBreakdownCard({
       costLabel: 'Custo',
       cost: internalCost,
       color: '#0d9488',
+    },
+    {
+      key: 'bonificacoes',
+      label: 'Bonificações',
+      value: bonusValue,
+      costLabel: 'Custo',
+      cost: bonusCost,
+      color: BUBBLE_COLOR,
     },
     {
       key: 'devolucoes',
@@ -996,7 +719,7 @@ function OperationsBreakdownCard({
                 fontWeight: 700,
               }}
             >
-              Vendas, Interno Obras e devoluções
+              Vendas, Interno Obras, Bonificações e devoluções
             </Typography>
           </Box>
 
@@ -1028,7 +751,7 @@ function OperationsBreakdownCard({
             display: 'grid',
             gridTemplateColumns: {
               xs: '1fr',
-              sm: 'repeat(3, minmax(0, 1fr))',
+              sm: 'repeat(4, minmax(0, 1fr))',
             },
 
             gap: {
@@ -2080,9 +1803,11 @@ export function SummarySection({
             internalValue={safeNumber(
               kpis.interno_obras?.total,
             )}
+            bonusValue={totalBonificados}
             returnsValue={totalGeralDevolucoes}
             salesCost={custoVendas}
             internalCost={custoInternoObras}
+            bonusCost={custoBonificados}
             returnsCost={custoTotalDevolucoes}
             rollDelay={210}
           />
@@ -2091,13 +1816,9 @@ export function SummarySection({
         {/*
          * RESULTADO — ocupa o espaço onde ficava o
          * card de devoluções e usa todo o terço final.
-         * O balão de bonificações permanece ancorado
-         * no último card da linha.
          */}
         <Box
           sx={{
-            position: 'relative',
-
             gridColumn: {
               xs: 'auto',
               sm: 'span 2',
@@ -2106,11 +1827,6 @@ export function SummarySection({
             },
           }}
         >
-          <BonusBubble
-            value={totalBonificados}
-            cost={custoBonificados}
-          />
-
           <ResultBreakdownCard
             grossMargin={margemBruta}
             netResult={resultadoLiquido}

@@ -5,9 +5,16 @@ import {
   useState,
 } from 'react';
 
-import type { ECharts, EChartsOption } from 'echarts';
+import type {
+  ECharts,
+  EChartsOption,
+} from 'echarts';
 
-import { Box } from '@mui/material';
+import {
+  Box,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 
 import { EChart } from '@/components/charts/EChart';
 import { useInViewOnce } from '@/components/common/RollingCurrency';
@@ -18,27 +25,32 @@ interface TaxBreakdownChartProps {
   data: ImpostoGrupoKpis;
 }
 
-const CHART_HEIGHT = 360;
-
-/*
- * Tempo que cada fatia fica destacada na
- * apresentação inicial.
- */
 const HIGHLIGHT_STEP_MS = 1150;
-
-/*
- * Espera a rosca terminar de desenhar antes
- * de começar a destacar.
- */
 const HIGHLIGHT_START_MS = 1900;
 
 export function TaxBreakdownChart({
   data,
 }: TaxBreakdownChartProps) {
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(
+    theme.breakpoints.down('sm'),
+  );
+
+  const isTablet = useMediaQuery(
+    theme.breakpoints.between('sm', 'lg'),
+  );
+
+  const chartHeight = isMobile
+    ? 360
+    : isTablet
+      ? 400
+      : 420;
+
   const [containerRef, inView] =
     useInViewOnce(
-      0.45,
-      '0px 0px -160px 0px',
+      0.35,
+      '0px 0px -100px 0px',
     );
 
   const [chart, setChart] =
@@ -55,29 +67,32 @@ export function TaxBreakdownChart({
     () => [
       {
         name: 'ICMS',
-        value: data.icms,
+        value: Number(
+          data.icms ?? 0,
+        ),
       },
       {
         name: 'PIS',
-        value: data.pis,
+        value: Number(
+          data.pis ?? 0,
+        ),
       },
       {
         name: 'COFINS',
-        value: data.cofins,
+        value: Number(
+          data.cofins ?? 0,
+        ),
       },
       {
         name: 'Comissão',
-        value: data.comissao,
+        value: Number(
+          data.comissao ?? 0,
+        ),
       },
     ],
     [data],
   );
 
-  /*
-   * Depois que a rosca aparece, cada fatia é
-   * destacada uma a uma e no fim tudo volta
-   * ao formato original.
-   */
   useEffect(() => {
     if (!chart || !inView) {
       return undefined;
@@ -120,7 +135,8 @@ export function TaxBreakdownChart({
           });
         },
         HIGHLIGHT_START_MS +
-          chartData.length * HIGHLIGHT_STEP_MS,
+          chartData.length *
+            HIGHLIGHT_STEP_MS,
       ),
     );
 
@@ -134,7 +150,12 @@ export function TaxBreakdownChart({
   const option = useMemo<EChartsOption>(
     () => {
       const total =
-        data.total_tributos + data.comissao;
+        Number(
+          data.total_tributos ?? 0,
+        ) +
+        Number(
+          data.comissao ?? 0,
+        );
 
       return {
         color: [
@@ -157,17 +178,38 @@ export function TaxBreakdownChart({
         },
 
         legend: {
-          bottom: 0,
+          type: 'scroll',
+
+          bottom: isMobile
+            ? 4
+            : 8,
+
           left: 'center',
 
-          itemWidth: 20,
-          itemHeight: 11,
-          itemGap: 12,
+          orient: 'horizontal',
+
+          itemWidth: isMobile
+            ? 16
+            : 22,
+
+          itemHeight: isMobile
+            ? 9
+            : 12,
+
+          itemGap: isMobile
+            ? 8
+            : 16,
+
+          pageIconSize: 10,
 
           textStyle: {
             color: '#475569',
-            fontSize: 12,
-            fontWeight: 600,
+
+            fontSize: isMobile
+              ? 10
+              : 13,
+
+            fontWeight: 650,
           },
         },
 
@@ -176,7 +218,10 @@ export function TaxBreakdownChart({
             type: 'text',
 
             left: 'center',
-            top: '34%',
+
+            top: isMobile
+              ? '33%'
+              : '35%',
 
             silent: true,
 
@@ -185,8 +230,11 @@ export function TaxBreakdownChart({
 
               fill: '#64748b',
 
-              fontSize: 12,
-              fontWeight: 600,
+              fontSize: isMobile
+                ? 11
+                : 14,
+
+              fontWeight: 650,
 
               textAlign: 'center',
             },
@@ -196,17 +244,25 @@ export function TaxBreakdownChart({
             type: 'text',
 
             left: 'center',
-            top: '40%',
+
+            top: isMobile
+              ? '40%'
+              : '42%',
 
             silent: true,
 
             style: {
-              text: formatCurrency(total),
+              text: formatCurrency(
+                total,
+              ),
 
               fill: '#0f172a',
 
-              fontSize: 16,
-              fontWeight: 800,
+              fontSize: isMobile
+                ? 15
+                : 21,
+
+              fontWeight: 900,
 
               textAlign: 'center',
             },
@@ -218,56 +274,83 @@ export function TaxBreakdownChart({
             name: 'Encargos',
             type: 'pie',
 
-            radius: ['35%', '57%'],
+            radius: isMobile
+              ? ['31%', '52%']
+              : isTablet
+                ? ['35%', '59%']
+                : ['37%', '62%'],
 
-            center: ['50%', '42%'],
+            center: isMobile
+              ? ['50%', '42%']
+              : ['50%', '44%'],
 
             avoidLabelOverlap: true,
             minShowLabelAngle: 0,
 
             itemStyle: {
-              borderRadius: 6,
+              borderRadius: isMobile
+                ? 5
+                : 8,
 
               borderColor: '#ffffff',
-              borderWidth: 3,
+
+              borderWidth: isMobile
+                ? 2
+                : 4,
 
               shadowColor:
                 'rgba(15, 23, 42, 0.08)',
 
-              shadowBlur: 4,
+              shadowBlur: isMobile
+                ? 3
+                : 6,
             },
 
             emphasis: {
               scale: true,
-              scaleSize: 10,
+
+              scaleSize: isMobile
+                ? 7
+                : 12,
 
               itemStyle: {
                 shadowColor:
                   'rgba(15, 23, 42, 0.22)',
 
-                shadowBlur: 16,
+                shadowBlur: isMobile
+                  ? 10
+                  : 18,
               },
             },
 
             label: {
-              show: true,
-              position: 'outside',
+              /*
+               * No mobile os rótulos externos
+               * somem para não cortar ou sobrepor.
+               * A legenda e o tooltip permanecem.
+               */
+              show: !isMobile,
 
-              alignTo: 'none',
+              position: 'outside',
 
               formatter: (params) => {
                 const value = Number(
                   params.value ?? 0,
                 );
 
-                const percentage = Number(
-                  params.percent ?? 0,
-                );
+                const percentage =
+                  Number(
+                    params.percent ?? 0,
+                  );
 
                 return (
                   `{name|${params.name}}\n` +
-                  `{value|${formatCurrency(value)}} ` +
-                  `{percentage|${percentage.toFixed(1)}%}`
+                  `{value|${formatCurrency(
+                    value,
+                  )}} ` +
+                  `{percentage|${percentage.toFixed(
+                    1,
+                  )}%}`
                 );
               },
 
@@ -275,37 +358,57 @@ export function TaxBreakdownChart({
                 name: {
                   color: '#475569',
 
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: isTablet
+                    ? 11
+                    : 13,
 
-                  lineHeight: 17,
+                  fontWeight: 750,
+
+                  lineHeight: isTablet
+                    ? 17
+                    : 20,
                 },
 
                 value: {
                   color: '#0f172a',
 
-                  fontSize: 11,
-                  fontWeight: 800,
+                  fontSize: isTablet
+                    ? 11
+                    : 13,
 
-                  lineHeight: 17,
+                  fontWeight: 850,
+
+                  lineHeight: isTablet
+                    ? 17
+                    : 20,
                 },
 
                 percentage: {
                   color: '#64748b',
 
-                  fontSize: 10,
+                  fontSize: isTablet
+                    ? 10
+                    : 12,
+
                   fontWeight: 700,
 
-                  lineHeight: 17,
+                  lineHeight: isTablet
+                    ? 17
+                    : 20,
                 },
               },
             },
 
             labelLine: {
-              show: true,
+              show: !isMobile,
 
-              length: 11,
-              length2: 8,
+              length: isTablet
+                ? 12
+                : 18,
+
+              length2: isTablet
+                ? 9
+                : 13,
 
               smooth: 0.2,
 
@@ -327,19 +430,36 @@ export function TaxBreakdownChart({
         ],
       };
     },
-    [chartData, data],
+    [
+      chartData,
+      data,
+      isMobile,
+      isTablet,
+    ],
   );
 
   return (
-    <Box ref={containerRef} sx={{ width: '100%' }}>
+    <Box
+      ref={containerRef}
+      sx={{
+        width: '100%',
+        maxWidth: 'none',
+        minWidth: 0,
+      }}
+    >
       {inView ? (
         <EChart
           option={option}
-          height={CHART_HEIGHT}
+          height={chartHeight}
           onReady={handleReady}
         />
       ) : (
-        <Box sx={{ height: CHART_HEIGHT }} />
+        <Box
+          sx={{
+            width: '100%',
+            height: chartHeight,
+          }}
+        />
       )}
     </Box>
   );

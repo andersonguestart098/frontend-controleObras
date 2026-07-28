@@ -6,7 +6,11 @@ import {
 
 import type { EChartsOption } from 'echarts';
 
-import { Box } from '@mui/material';
+import {
+  Box,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 
 import { EChart } from '@/components/charts/EChart';
 import { useInViewOnce } from '@/components/common/RollingCurrency';
@@ -16,8 +20,6 @@ import { formatCurrency } from '@/utils/formatters';
 interface SalesCompositionChartProps {
   kpis: DashboardKpis;
 }
-
-const CHART_HEIGHT = 330;
 
 const BAR_DURATION = 2200;
 const BAR_DELAY_STEP = 430;
@@ -32,6 +34,8 @@ const compactCurrencyFormatter =
 
 const fadeUpSx = {
   width: '100%',
+  maxWidth: 'none',
+  minWidth: 0,
 
   opacity: 0,
   transform: 'translateY(16px)',
@@ -71,25 +75,28 @@ function formatCompactCurrency(
 export function SalesCompositionChart({
   kpis,
 }: SalesCompositionChartProps) {
-  /*
-   * O gráfico só é montado quando entra na
-   * tela, para a animação acontecer na frente
-   * do usuário.
-   */
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(
+    theme.breakpoints.down('sm'),
+  );
+
+  const isTablet = useMediaQuery(
+    theme.breakpoints.between('sm', 'lg'),
+  );
+
+  const chartHeight = isMobile
+    ? 340
+    : isTablet
+      ? 390
+      : 420;
+
   const [containerRef, inView] =
     useInViewOnce(
-      0.45,
-      '0px 0px -160px 0px',
+      0.35,
+      '0px 0px -100px 0px',
     );
 
-  /*
-   * As barras nascem no zero e só depois sobem
-   * para o valor real.
-   *
-   * A animação de entrada do ECharts ignora
-   * easing com repique, então fazemos o
-   * crescimento como uma atualização de dados.
-   */
   const [grown, setGrown] = useState(false);
 
   useEffect(() => {
@@ -117,14 +124,11 @@ export function SalesCompositionChart({
         kpis.remessa_futura
           .total_faturamento;
 
-      /*
-       * Vendas e remessas viram uma barra só,
-       * já somada. A quebra continua visível
-       * no tooltip.
-       */
       const chartData = [
         {
           name: 'Vendas e remessas',
+          shortName: 'Vendas + remessas',
+
           value:
             valorVendas + valorRemessas,
 
@@ -141,16 +145,22 @@ export function SalesCompositionChart({
 
           color: '#4f6edb',
         },
+
         {
           name: 'Interno Obras',
+          shortName: 'Interno Obras',
+
           value: kpis.interno_obras.total,
 
           detalhe: [],
 
-          color: '#4f6edb',
+          color: '#0d9488',
         },
+
         {
           name: 'Devoluções',
+          shortName: 'Devoluções',
+
           value:
             kpis.vendas.total_devolucoes,
 
@@ -160,10 +170,6 @@ export function SalesCompositionChart({
         },
       ];
 
-      /*
-       * Escala travada no maior valor para o
-       * eixo não pular quando as barras sobem.
-       */
       const maiorValor = Math.max(
         ...chartData.map(
           (item) => item.value,
@@ -171,67 +177,214 @@ export function SalesCompositionChart({
         1,
       );
 
+      const tooltip = {
+        trigger: 'axis' as const,
+
+        axisPointer: {
+          type: 'shadow' as const,
+
+          shadowStyle: {
+            color:
+              'rgba(79, 110, 219, 0.06)',
+          },
+        },
+
+        formatter: (params: unknown) => {
+          const list = Array.isArray(params)
+            ? params
+            : [params];
+
+          const first = list[0] as {
+            dataIndex: number;
+          };
+
+          const item =
+            chartData[first.dataIndex];
+
+          if (!item) {
+            return '';
+          }
+
+          const linhas = item.detalhe
+            .map(
+              (parte) =>
+                `<div style="color:#64748b">${parte.label}: ` +
+                `<strong style="color:#0f172a">${formatCurrency(
+                  parte.value,
+                )}</strong></div>`,
+            )
+            .join('');
+
+          return (
+            `<div style="font-weight:700;margin-bottom:4px">${item.name}</div>` +
+            `<div style="font-weight:800;color:#0f172a">${formatCurrency(
+              item.value,
+            )}</div>` +
+            linhas
+          );
+        },
+      };
+
+      if (isMobile) {
+        return {
+          animationDurationUpdate:
+            BAR_DURATION,
+
+          animationEasingUpdate:
+            'elasticOut',
+
+          animationDelayUpdate: (
+            index: number,
+          ) => index * BAR_DELAY_STEP,
+
+          tooltip,
+
+          grid: {
+            top: 20,
+            right: 24,
+            bottom: 24,
+            left: 12,
+            containLabel: true,
+          },
+
+          xAxis: {
+            type: 'value',
+
+            min: 0,
+
+            max: Math.ceil(
+              maiorValor * 1.22,
+            ),
+
+            axisTick: {
+              show: false,
+            },
+
+            axisLine: {
+              show: false,
+            },
+
+            axisLabel: {
+              color: '#64748b',
+              fontSize: 11,
+
+              formatter: (
+                value: number,
+              ) =>
+                formatCompactCurrency(
+                  value,
+                ),
+            },
+
+            splitLine: {
+              lineStyle: {
+                color:
+                  'rgba(148, 163, 184, 0.22)',
+              },
+            },
+          },
+
+          yAxis: {
+            type: 'category',
+
+            inverse: true,
+
+            data: chartData.map(
+              (item) => item.shortName,
+            ),
+
+            axisTick: {
+              show: false,
+            },
+
+            axisLine: {
+              show: false,
+            },
+
+            axisLabel: {
+              color: '#475569',
+              fontSize: 11,
+              fontWeight: 700,
+              lineHeight: 15,
+              width: 104,
+              overflow: 'break',
+            },
+          },
+
+          series: [
+            {
+              name: 'Valor',
+              type: 'bar',
+
+              data: chartData.map(
+                (item) => ({
+                  value: grown
+                    ? item.value
+                    : 0,
+
+                  itemStyle: {
+                    color:
+                      item.color,
+                  },
+                }),
+              ),
+
+              barMaxWidth: 46,
+
+              itemStyle: {
+                borderRadius: [
+                  0,
+                  8,
+                  8,
+                  0,
+                ],
+
+                shadowColor:
+                  'rgba(15, 23, 42, 0.14)',
+
+                shadowBlur: 7,
+                shadowOffsetX: 3,
+              },
+
+              label: {
+                show: grown,
+                position: 'right',
+                distance: 8,
+
+                color: '#0f172a',
+                fontSize: 10,
+                fontWeight: 800,
+
+                formatter: (params) =>
+                  formatCompactCurrency(
+                    Number(
+                      params.value ?? 0,
+                    ),
+                  ),
+              },
+            },
+          ],
+        };
+      }
+
       return {
-        animationDurationUpdate: BAR_DURATION,
-        animationEasingUpdate: 'elasticOut',
+        animationDurationUpdate:
+          BAR_DURATION,
+
+        animationEasingUpdate:
+          'elasticOut',
 
         animationDelayUpdate: (
           index: number,
         ) => index * BAR_DELAY_STEP,
 
-        tooltip: {
-          trigger: 'axis',
-
-          axisPointer: {
-            type: 'shadow',
-
-            shadowStyle: {
-              color:
-                'rgba(79, 110, 219, 0.06)',
-            },
-          },
-
-          formatter: (params: unknown) => {
-            const list = Array.isArray(params)
-              ? params
-              : [params];
-
-            const first = list[0] as {
-              dataIndex: number;
-            };
-
-            const item =
-              chartData[first.dataIndex];
-
-            if (!item) {
-              return '';
-            }
-
-            const linhas = item.detalhe
-              .map(
-                (parte) =>
-                  `<div style="color:#64748b">${parte.label}: ` +
-                  `<strong style="color:#0f172a">${formatCurrency(
-                    parte.value,
-                  )}</strong></div>`,
-              )
-              .join('');
-
-            return (
-              `<div style="font-weight:700;margin-bottom:4px">${item.name}</div>` +
-              `<div style="font-weight:800;color:#0f172a">${formatCurrency(
-                item.value,
-              )}</div>` +
-              linhas
-            );
-          },
-        },
+        tooltip,
 
         grid: {
-          top: 58,
-          right: 22,
-          bottom: 18,
-          left: 20,
+          top: 62,
+          right: 38,
+          bottom: 34,
+          left: 38,
           containLabel: true,
         },
 
@@ -255,9 +408,12 @@ export function SalesCompositionChart({
 
           axisLabel: {
             color: '#475569',
-            fontSize: 12,
-            fontWeight: 600,
+            fontSize: isTablet
+              ? 12
+              : 13,
+            fontWeight: 650,
             interval: 0,
+            lineHeight: 18,
           },
         },
 
@@ -265,7 +421,10 @@ export function SalesCompositionChart({
           type: 'value',
 
           min: 0,
-          max: Math.ceil(maiorValor * 1.15),
+
+          max: Math.ceil(
+            maiorValor * 1.18,
+          ),
 
           axisTick: {
             show: false,
@@ -279,16 +438,18 @@ export function SalesCompositionChart({
             color: '#64748b',
             fontSize: 12,
 
-            formatter: (value: number) =>
-              formatCompactCurrency(value),
+            formatter: (
+              value: number,
+            ) =>
+              formatCompactCurrency(
+                value,
+              ),
           },
 
           splitLine: {
             lineStyle: {
               color:
                 'rgba(148, 163, 184, 0.24)',
-
-              type: 'solid',
             },
           },
         },
@@ -298,24 +459,35 @@ export function SalesCompositionChart({
             name: 'Valor',
             type: 'bar',
 
-            data: chartData.map((item) => ({
-              value: grown ? item.value : 0,
+            data: chartData.map(
+              (item) => ({
+                value: grown
+                  ? item.value
+                  : 0,
 
-              itemStyle: {
-                color: item.color,
-              },
-            })),
+                itemStyle: {
+                  color: item.color,
+                },
+              }),
+            ),
 
-            barMaxWidth: 70,
+            barMaxWidth: isTablet
+              ? 76
+              : 96,
 
             itemStyle: {
-              borderRadius: [8, 8, 0, 0],
+              borderRadius: [
+                10,
+                10,
+                0,
+                0,
+              ],
 
               shadowColor:
                 'rgba(15, 23, 42, 0.16)',
 
-              shadowBlur: 8,
-              shadowOffsetY: 3,
+              shadowBlur: 10,
+              shadowOffsetY: 4,
             },
 
             emphasis: {
@@ -323,24 +495,29 @@ export function SalesCompositionChart({
                 shadowColor:
                   'rgba(15, 23, 42, 0.26)',
 
-                shadowBlur: 12,
-                shadowOffsetY: 4,
+                shadowBlur: 14,
+                shadowOffsetY: 5,
               },
             },
 
             label: {
               show: grown,
               position: 'top',
-              distance: 10,
+              distance: 12,
 
               color: '#0f172a',
 
-              fontSize: 12,
-              fontWeight: 800,
+              fontSize: isTablet
+                ? 12
+                : 13,
+
+              fontWeight: 850,
 
               formatter: (params) =>
                 formatCurrency(
-                  Number(params.value ?? 0),
+                  Number(
+                    params.value ?? 0,
+                  ),
                 ),
             },
 
@@ -351,19 +528,30 @@ export function SalesCompositionChart({
         ],
       };
     },
-    [grown, kpis],
+    [
+      grown,
+      isMobile,
+      isTablet,
+      kpis,
+    ],
   );
 
   return (
-    <Box ref={containerRef} sx={fadeUpSx}>
+    <Box
+      ref={containerRef}
+      sx={fadeUpSx}
+    >
       {inView ? (
         <EChart
           option={option}
-          height={CHART_HEIGHT}
+          height={chartHeight}
         />
       ) : (
         <Box
-          sx={{ height: CHART_HEIGHT }}
+          sx={{
+            width: '100%',
+            height: chartHeight,
+          }}
         />
       )}
     </Box>
