@@ -63,6 +63,7 @@ export interface NotasResumoKpis {
   valor_pis: number;
   valor_cofins: number;
   valor_impostos: number;
+  valor_federais?: number;
 
   perc_gasto_fixo: number;
   perc_irpj_cssl: number;
