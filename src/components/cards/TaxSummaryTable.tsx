@@ -1,152 +1,99 @@
-import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
+import type { ReactNode } from 'react';
+
+import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
+import MoneyOffCsredOutlinedIcon from '@mui/icons-material/MoneyOffCsredOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
+import PriceCheckOutlinedIcon from '@mui/icons-material/PriceCheckOutlined';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
 import {
   Box,
   Card,
+  CardContent,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
 } from '@mui/material';
 
-import type {
-  DashboardKpis,
-  ImpostoGrupoKpis,
-  ImpostosKpis,
-} from '@/types/dashboard';
+import { KpiCard } from '@/components/cards/KpiCard';
+import { RollingCurrency } from '@/components/common/RollingCurrency';
+import type { DashboardKpis } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
 
-interface TaxSummaryTableProps {
-  kpis: DashboardKpis | null | undefined;
+interface SummarySectionProps {
+  kpis: DashboardKpis;
 }
 
-interface TaxTableRow {
-  key: string;
-  label: string;
-
-  valor: number;
-  valorCusto: number | null;
-  valorCustoEntregue: number | null;
-  saldoCusto: number | null;
-
-  impostos: ImpostoGrupoKpis;
-
-  irpjCssl: number | null;
-  comissao: number | null;
-
-  negative?: boolean;
-  consolidated?: boolean;
-  remessa?: boolean;
-  entrega?: boolean;
-  bonificado?: boolean;
-  internalReturn?: boolean;
-
-  /*
-   * A linha continua positiva para valor/custo,
-   * mas os encargos são exibidos como abatimento.
-   */
-  taxNegative?: boolean;
+interface ChargesMetricProps {
+  taxes: number;
+  commission: number;
 }
 
-interface SummaryItemProps {
+interface CostBreakdownMetricProps {
   title: string;
-  value: number;
+  operations: number;
+  bonus: number;
+  total: number;
+  icon: ReactNode;
   color: string;
   backgroundColor: string;
 }
 
-const IRPJ_CSSL_PERCENTUAL = 3.35;
-const IRPJ_CSSL_RATE = 0.0335;
+interface BonusBubbleProps {
+  value: number;
+  cost: number;
+  rollDelay?: number;
+}
 
-const taxColors = {
-  valor: '#0f766e',
-  custo: '#dc2626',
-  custoEntregue: '#0284c7',
-  saldoCusto: '#C18D34',
+interface ReturnsBreakdownCardProps {
+  salesReturns: number;
+  internalReturns: number;
 
-  icms: '#4f6edb',
-  pis: '#84a914',
-  cofins: '#575b7c',
+  salesReturnCost: number;
+  internalReturnCost: number;
 
-  irpjCssl: '#9333ea',
-  tributos: '#d97706',
-  comissao: '#f97316',
+  totalReturns: number;
+  totalReturnCost: number;
 
-  bonificado: '#C96A16',
+  rollDelay?: number;
+}
 
-  negative: '#dc2626',
-  normal: '#0f172a',
-  muted: '#94a3b8',
-};
-
-const emptyTaxGroup: ImpostoGrupoKpis = {
-  icms: 0,
-  pis: 0,
-  cofins: 0,
-  federais: 0,
-  total_tributos: 0,
-  comissao: 0,
-};
-
-const emptyImpostos: ImpostosKpis = {
-  vendas: { ...emptyTaxGroup },
-  devolucoes: { ...emptyTaxGroup },
-
-  interno_obras: { ...emptyTaxGroup },
-
-  devolucoes_interno_obras: {
-    ...emptyTaxGroup,
-  },
-
-  remessa_futura: { ...emptyTaxGroup },
-
-  consolidado_liquido: {
-    ...emptyTaxGroup,
-  },
-};
-
-const headerCellSx = {
-  px: 1.1,
-  py: 2.2,
-
-  color: '#64748b',
-  backgroundColor: '#f8fafc',
-
-  borderBottom:
-    '1px solid rgba(148, 163, 184, 0.20)',
-
-  fontSize: '0.76rem',
-  fontWeight: 900,
-  letterSpacing: '0.02em',
-  whiteSpace: 'nowrap',
-};
-
-const bodyCellSx = {
-  px: 1.1,
-  py: 2.4,
-
-  color: taxColors.normal,
-
-  borderBottom:
-    '1px solid rgba(148, 163, 184, 0.13)',
-
-  fontSize: '0.95rem',
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
-};
+const BUBBLE_COLOR = '#C96A16';
 
 /*
- * A coluna de origem fica fixa na esquerda
- * quando ainda sobra scroll horizontal.
+ * Mesma alíquota usada na tabela de
+ * "Tributos, custos e comissão" para o
+ * IRPJ/CSLL sobre o valor de cada origem.
  */
-const stickyCellSx = {
-  position: 'sticky',
-  left: 0,
-  zIndex: 2,
-};
+const IRPJ_CSSL_RATE = 0.0335;
+
+/*
+ * Rastro de bolhas subindo pela direita do
+ * card até o balão.
+ *
+ * Todos os right são negativos, então as
+ * bolhas ficam fora do card.
+ *
+ * A curva abre rápido para a direita e depois
+ * sobe quase reta, formando o C deitado até o
+ * balão.
+ *
+ * A última bolha encosta no centro da borda de
+ * baixo do balão.
+ *
+ * O centro do balão fica a 105px da borda do
+ * card: 16px de margem mais metade dos 178px
+ * de largura mínima.
+ */
+const BUBBLE_TRAIL = [
+  { size: 6, bottom: 6, right: -10 },
+  { size: 8, bottom: 32, right: -46 },
+  { size: 10, bottom: 62, right: -74 },
+  { size: 11, bottom: 92, right: -94 },
+  { size: 12, bottom: 117, right: -106 },
+  { size: 14, bottom: 137, right: -112 },
+];
 
 function safeNumber(
   value: number | null | undefined,
@@ -158,553 +105,1090 @@ function safeNumber(
     : 0;
 }
 
-function negativeValue(
-  value: number,
-): number {
-  const safeValue = safeNumber(value);
+/*
+ * Balão flutuante com o dado de bonificações.
+ *
+ * No desktop ele sai do fluxo e fica pairando
+ * acima do card de devoluções. No mobile entra
+ * na coluna, logo acima do card.
+ */
+function BonusBubble({
+  value,
+  cost,
+  rollDelay = 380,
+}: BonusBubbleProps) {
+  return (
+    <>
+      {/* RASTRO EM CURVA */}
+      {BUBBLE_TRAIL.map((bubble, index) => (
+        <Box
+          key={bubble.size}
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
 
-  if (safeValue === 0) {
-    return 0;
-  }
+            display: {
+              xs: 'none',
+              xl: 'block',
+            },
 
-  return -Math.abs(safeValue);
+            bottom: bubble.bottom,
+            right: bubble.right,
+
+            width: bubble.size,
+            height: bubble.size,
+
+            borderRadius: '50%',
+
+            background:
+              'linear-gradient(135deg, #fffaf5 0%, #ffedd5 100%)',
+
+            border:
+              '1px solid rgba(221, 127, 19, 0.28)',
+
+            boxShadow:
+              '0 3px 8px rgba(180, 102, 13, 0.18)',
+
+            zIndex: 2,
+
+            animation: `bonusFloat 4.2s ease-in-out ${
+              700 + index * 130
+            }ms infinite`,
+
+            '@keyframes bonusFloat': {
+              '0%, 100%': {
+                transform: 'translateY(0)',
+              },
+
+              '50%': {
+                transform: 'translateY(-6px)',
+              },
+            },
+
+            '@media (prefers-reduced-motion: reduce)':
+              {
+                animation: 'none',
+              },
+          }}
+        />
+      ))}
+
+      {/* BALÃO */}
+      <Box
+        sx={{
+          position: {
+            xs: 'relative',
+            md: 'absolute',
+          },
+
+          /*
+           * Em telas largas o balão sai pela
+           * direita do card, desacoplado.
+           *
+           * Abaixo disso não há espaço lateral,
+           * então ele volta para cima do card.
+           */
+          top: {
+            md: -92,
+            xl: 'auto',
+          },
+
+          right: {
+            md: 2,
+            xl: 'auto',
+          },
+
+          bottom: {
+            xl: 150,
+          },
+
+          left: {
+            xl: '100%',
+          },
+
+          ml: {
+            xl: 2,
+          },
+
+          mr: {
+            md: 1,
+            xl: 0,
+          },
+
+          zIndex: 3,
+
+          mb: {
+            xs: 1.2,
+            md: 0,
+          },
+
+          px: 2.9,
+          py: 2.1,
+
+          minWidth: {
+            xl: 178,
+          },
+
+          display: 'inline-flex',
+          flexDirection: 'column',
+
+          whiteSpace: 'nowrap',
+
+          borderRadius: '24px 24px 10px 24px',
+
+          background:
+            'linear-gradient(135deg, #fffaf5 0%, #ffedd5 100%)',
+
+          border:
+            '1px solid rgba(221, 127, 19, 0.22)',
+
+          boxShadow:
+            '0 12px 30px rgba(180, 102, 13, 0.2), ' +
+            '0 2px 6px rgba(15, 23, 42, 0.05)',
+
+          transformOrigin: 'bottom right',
+
+          animation:
+            'bonusPop 560ms cubic-bezier(0.22, 1, 0.36, 1) both, ' +
+            'bonusFloat 4.2s ease-in-out 560ms infinite',
+
+          transition:
+            'transform 200ms ease, box-shadow 200ms ease',
+
+          '&:hover': {
+            boxShadow:
+              '0 16px 38px rgba(221, 127, 19, 0.28), ' +
+              '0 3px 8px rgba(15, 23, 42, 0.06)',
+          },
+
+          '@keyframes bonusPop': {
+            '0%': {
+              opacity: 0,
+              transform:
+                'translateY(10px) scale(0.92)',
+            },
+
+            '100%': {
+              opacity: 1,
+              transform:
+                'translateY(0) scale(1)',
+            },
+          },
+
+          '@keyframes bonusFloat': {
+            '0%, 100%': {
+              transform: 'translateY(0)',
+            },
+
+            '50%': {
+              transform: 'translateY(-6px)',
+            },
+          },
+
+          '@media (prefers-reduced-motion: reduce)':
+            {
+              animation: 'none',
+              opacity: 1,
+            },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.7,
+          }}
+        >
+          <MoneyOffCsredOutlinedIcon
+            sx={{
+              fontSize: 17,
+              color: BUBBLE_COLOR,
+            }}
+          />
+
+          <Typography
+            variant="caption"
+            sx={{
+              color: BUBBLE_COLOR,
+
+              fontSize: '0.68rem',
+              fontWeight: 900,
+
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Bonificações
+          </Typography>
+        </Box>
+
+        <Typography
+          component="div"
+          sx={{
+            mt: 0.5,
+
+            color: '#0f172a',
+
+            fontSize: '1.5rem',
+            lineHeight: 1.15,
+            fontWeight: 900,
+            letterSpacing: '-0.025em',
+          }}
+        >
+          <RollingCurrency
+            value={value}
+            startDelay={rollDelay}
+          />
+        </Typography>
+
+        <Typography
+          variant="caption"
+          sx={{
+            mt: 0.5,
+
+            color: BUBBLE_COLOR,
+
+            fontSize: '0.78rem',
+            fontWeight: 700,
+          }}
+        >
+          Custo: {formatCurrency(cost)}
+        </Typography>
+      </Box>
+    </>
+  );
+}
+
+
+/*
+ * Card compacto de devoluções.
+ *
+ * Mantém a mesma área do KPI original, mas
+ * separa as devoluções de vendas das devoluções
+ * de Interno Obras e apresenta os totais no rodapé.
+ */
+function ReturnsBreakdownCard({
+  salesReturns,
+  internalReturns,
+
+  salesReturnCost,
+  internalReturnCost,
+
+  totalReturns,
+  totalReturnCost,
+
+  rollDelay = 350,
+}: ReturnsBreakdownCardProps) {
+  return (
+    <Card
+      sx={{
+        height: '100%',
+        minHeight: 155,
+
+        borderRadius: 2.5,
+        border: 'none',
+
+        backgroundColor: '#ffffff',
+
+        boxShadow:
+          '0 3px 10px rgba(15, 23, 42, 0.07), ' +
+          '0 12px 30px rgba(15, 23, 42, 0.06)',
+
+        transition:
+          'transform 180ms ease, box-shadow 180ms ease',
+
+        '&:hover': {
+          transform: 'translateY(-3px)',
+
+          boxShadow:
+            '0 7px 20px rgba(15, 23, 42, 0.11), ' +
+            '0 18px 38px rgba(15, 23, 42, 0.08)',
+        },
+      }}
+    >
+      <CardContent
+        sx={{
+          height: '100%',
+
+          display: 'flex',
+          flexDirection: 'column',
+
+          p: 2.25,
+
+          '&:last-child': {
+            pb: 2.25,
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 1.25,
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'text.secondary',
+
+              fontWeight: 700,
+              lineHeight: 1.25,
+            }}
+          >
+            Devoluções
+          </Typography>
+
+          <Box
+            sx={{
+              width: 38,
+              height: 38,
+
+              display: 'grid',
+              placeItems: 'center',
+
+              flexShrink: 0,
+
+              borderRadius: 2,
+
+              color: '#dc2626',
+
+              backgroundColor:
+                'rgba(220, 38, 38, 0.10)',
+
+              '& svg': {
+                fontSize: 21,
+              },
+            }}
+          >
+            <MoneyOffCsredOutlinedIcon />
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(2, minmax(0, 1fr))',
+
+            gap: 1,
+
+            mt: 0.5,
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                color: '#64748b',
+
+                fontSize: '0.62rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Devoluções
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.15,
+
+                color: '#0f172a',
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.05rem',
+                },
+
+                lineHeight: 1.15,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={salesReturns}
+                startDelay={rollDelay}
+                delayStep={55}
+              />
+            </Typography>
+
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                mt: 0.3,
+
+                color: '#FF746D',
+
+                fontSize: '0.64rem',
+                fontWeight: 750,
+                lineHeight: 1.2,
+              }}
+            >
+              Custo {formatCurrency(salesReturnCost)}
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: 0,
+
+              pl: 1,
+
+              borderLeft:
+                '1px solid rgba(148, 163, 184, 0.20)',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                color: '#64748b',
+
+                fontSize: '0.62rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Interno Obras
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.15,
+
+                color: '#0f172a',
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.05rem',
+                },
+
+                lineHeight: 1.15,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={internalReturns}
+                startDelay={rollDelay + 70}
+                delayStep={55}
+              />
+            </Typography>
+
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                mt: 0.3,
+
+                color: '#FF746D',
+
+                fontSize: '0.64rem',
+                fontWeight: 750,
+                lineHeight: 1.2,
+              }}
+            >
+              Custo {formatCurrency(internalReturnCost)}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            mt: 'auto',
+            pt: 0.8,
+
+            borderTop:
+              '1px solid rgba(148, 163, 184, 0.16)',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              gap: 1,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                color: '#94a3b8',
+
+                fontSize: '0.62rem',
+                fontWeight: 800,
+
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Total
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                color: '#dc2626',
+
+                fontSize: '0.95rem',
+                lineHeight: 1.1,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={totalReturns}
+                startDelay={rollDelay + 140}
+                delayStep={60}
+              />
+            </Typography>
+          </Box>
+
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+
+              mt: 0.2,
+
+              color: '#FF746D',
+
+              fontSize: '0.64rem',
+              fontWeight: 750,
+              textAlign: 'right',
+            }}
+          >
+            Custo total {formatCurrency(totalReturnCost)}
+          </Typography>
+        </Box>
+      </CardContent>
+    </Card>
+  );
 }
 
 /*
- * SALDO CUSTO:
+ * Total de custo com a parcela de bonificação
+ * separada.
  *
- * Valor custo - Valor custo entregue.
- *
- * Representa o custo que ainda não foi
- * baixado pela entrega.
- *
- * Quando a linha não possui nenhum dos
- * dois valores, o saldo não se aplica.
+ * A bonificação é custo puro: sai do estoque
+ * e não tem receita nem abatimento, por isso
+ * aparece somando à parte.
  */
-
-function calculateSaldoCusto(
-  custo: number | null,
-  custoEntregue: number | null,
-): number | null {
-  if (
-    custo === null &&
-    custoEntregue === null
-  ) {
-    return null;
-  }
-
-  return Number(
-    (
-      safeNumber(custo) -
-      safeNumber(custoEntregue)
-    ).toFixed(2),
-  );
-}
-
-function normalizeTaxGroup(
-  group:
-    | ImpostoGrupoKpis
-    | null
-    | undefined,
-): ImpostoGrupoKpis {
-  return {
-    icms: safeNumber(group?.icms),
-    pis: safeNumber(group?.pis),
-    cofins: safeNumber(group?.cofins),
-    federais: safeNumber(group?.federais),
-
-    total_tributos: safeNumber(
-      group?.total_tributos,
-    ),
-
-    comissao: safeNumber(
-      group?.comissao,
-    ),
-  };
-}
-
-function negativeTaxGroup(
-  group:
-    | ImpostoGrupoKpis
-    | null
-    | undefined,
-): ImpostoGrupoKpis {
-  const normalized =
-    normalizeTaxGroup(group);
-
-  return {
-    icms: negativeValue(
-      normalized.icms,
-    ),
-
-    pis: negativeValue(
-      normalized.pis,
-    ),
-
-    cofins: negativeValue(
-      normalized.cofins,
-    ),
-
-    federais: negativeValue(
-      normalized.federais,
-    ),
-
-    total_tributos: negativeValue(
-      normalized.total_tributos,
-    ),
-
-    comissao: negativeValue(
-      normalized.comissao,
-    ),
-  };
-}
-
-function sumTaxGroups(
-  ...groups: Array<
-    ImpostoGrupoKpis | null | undefined
-  >
-): ImpostoGrupoKpis {
-  return groups.reduce<ImpostoGrupoKpis>(
-    (total, group) => {
-      const normalized =
-        normalizeTaxGroup(group);
-
-      return {
-        icms:
-          total.icms +
-          normalized.icms,
-
-        pis:
-          total.pis +
-          normalized.pis,
-
-        cofins:
-          total.cofins +
-          normalized.cofins,
-
-        federais:
-          total.federais +
-          normalized.federais,
-
-        total_tributos:
-          total.total_tributos +
-          normalized.total_tributos,
-
-        comissao:
-          total.comissao +
-          normalized.comissao,
-      };
-    },
-    {
-      ...emptyTaxGroup,
-    },
-  );
-}
-
-function calculateIrpjCssl(
-  value: number,
-): number {
-  return Number(
-    (
-      safeNumber(value) *
-      IRPJ_CSSL_RATE
-    ).toFixed(2),
-  );
-}
-
-function SummaryItem({
+function CostBreakdownMetric({
   title,
-  value,
+  operations,
+  bonus,
+  total,
+  icon,
   color,
   backgroundColor,
-}: SummaryItemProps) {
+}: CostBreakdownMetricProps) {
   return (
     <Box
       sx={{
-        minWidth: {
-          xs: '100%',
-          sm: 190,
+        minWidth: 0,
+        height: '100%',
+
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 1.4,
+
+        px: {
+          xs: 2,
+          md: 2.25,
         },
 
-        px: 2,
-        py: 1.3,
+        py: {
+          xs: 1.8,
+          md: 2,
+        },
 
         borderRadius: 2.5,
 
         backgroundColor,
 
         border:
-          '1px solid rgba(148, 163, 184, 0.12)',
+          '1px solid rgba(148, 163, 184, 0.13)',
+
+        transition:
+          'transform 160ms ease, box-shadow 160ms ease',
+
+        '&:hover': {
+          transform: 'translateY(-2px)',
+
+          boxShadow:
+            '0 8px 22px rgba(15, 23, 42, 0.07)',
+        },
       }}
     >
-      <Typography
-        variant="caption"
+      <Box
         sx={{
-          display: 'block',
+          width: 40,
+          height: 40,
 
-          color: '#64748b',
+          display: 'grid',
+          placeItems: 'center',
 
-          fontWeight: 700,
-        }}
-      >
-        {title}
-      </Typography>
+          flexShrink: 0,
 
-      <Typography
-        sx={{
-          mt: 0.35,
+          borderRadius: 2,
 
           color,
-
-          fontSize: '1.05rem',
-          lineHeight: 1.2,
-          fontWeight: 900,
-          letterSpacing: '-0.02em',
-        }}
-      >
-        {formatCurrency(
-          safeNumber(value),
-        )}
-      </Typography>
-    </Box>
-  );
-}
-
-function CurrencyCell({
-  value,
-  color,
-  emphasized = false,
-  negative = false,
-}: {
-  value: number | null;
-  color: string;
-  emphasized?: boolean;
-  negative?: boolean;
-}) {
-  const finalColor = negative
-    ? taxColors.negative
-    : emphasized
-      ? color
-      : taxColors.normal;
-
-  return (
-    <TableCell
-      align="right"
-      sx={{
-        ...bodyCellSx,
-
-        color: finalColor,
-
-        fontWeight: emphasized
-          ? 900
-          : negative
-            ? 800
-            : 650,
-      }}
-    >
-      {value === null ? (
-        <Typography
-          component="span"
-          sx={{
-            color: taxColors.muted,
-            fontSize: '0.82rem',
-            fontWeight: 700,
-          }}
-        >
-          —
-        </Typography>
-      ) : (
-        formatCurrency(
-          safeNumber(value),
-        )
-      )}
-    </TableCell>
-  );
-}
-
-function SaldoCustoCell({
-  value,
-  consolidated = false,
-}: {
-  value: number | null;
-  consolidated?: boolean;
-}) {
-  if (value === null) {
-    return (
-      <TableCell
-        align="right"
-        sx={bodyCellSx}
-      >
-        <Typography
-          component="span"
-          sx={{
-            color: taxColors.muted,
-            fontSize: '0.82rem',
-            fontWeight: 700,
-          }}
-        >
-          —
-        </Typography>
-      </TableCell>
-    );
-  }
-
-  const safeValue =
-    safeNumber(value);
-
-  const finalColor =
-    safeValue < 0
-      ? taxColors.negative
-      : safeValue === 0
-        ? taxColors.muted
-        : taxColors.saldoCusto;
-
-  return (
-    <TableCell
-      align="right"
-      sx={{
-        ...bodyCellSx,
-
-        color: finalColor,
-
-        fontWeight: consolidated
-          ? 900
-          : 750,
-      }}
-    >
-      {formatCurrency(safeValue)}
-    </TableCell>
-  );
-}
-
-function TaxCell({
-  value,
-  color,
-  consolidated = false,
-  negative = false,
-}: {
-  value: number | null;
-  color: string;
-  consolidated?: boolean;
-  negative?: boolean;
-}) {
-  if (value === null) {
-    return (
-      <TableCell
-        align="right"
-        sx={bodyCellSx}
-      >
-        <Chip
-          size="small"
-          label="Não se aplica"
-          sx={{
-            height: 24,
-
-            color: '#64748b',
-
-            backgroundColor:
-              'rgba(100, 116, 139, 0.09)',
-
-            fontSize: '0.68rem',
-            fontWeight: 800,
-          }}
-        />
-      </TableCell>
-    );
-  }
-
-  const finalColor = negative
-    ? taxColors.negative
-    : consolidated
-      ? color
-      : taxColors.normal;
-
-  return (
-    <TableCell
-      align="right"
-      sx={{
-        ...bodyCellSx,
-
-        color: finalColor,
-
-        fontWeight: consolidated
-          ? 900
-          : negative
-            ? 800
-            : 650,
-      }}
-    >
-      {formatCurrency(
-        safeNumber(value),
-      )}
-    </TableCell>
-  );
-}
-
-function IrpjCsslCell({
-  value,
-  consolidated = false,
-  negative = false,
-}: {
-  value: number | null;
-  consolidated?: boolean;
-  negative?: boolean;
-}) {
-  if (value === null) {
-    return (
-      <TableCell
-        align="right"
-        sx={bodyCellSx}
-      >
-        <Chip
-          size="small"
-          label="Não se aplica"
-          sx={{
-            height: 24,
-
-            color: '#64748b',
-
-            backgroundColor:
-              'rgba(100, 116, 139, 0.09)',
-
-            fontSize: '0.68rem',
-            fontWeight: 800,
-          }}
-        />
-      </TableCell>
-    );
-  }
-
-  const finalColor = negative
-    ? taxColors.negative
-    : consolidated
-      ? taxColors.irpjCssl
-      : taxColors.normal;
-
-  return (
-    <TableCell
-      align="right"
-      sx={{
-        ...bodyCellSx,
-
-        color: finalColor,
-
-        fontWeight: consolidated
-          ? 900
-          : negative
-            ? 800
-            : 650,
-      }}
-    >
-      {formatCurrency(
-        safeNumber(value),
-      )}
-    </TableCell>
-  );
-}
-
-export function TaxSummaryTable({
-  kpis,
-}: TaxSummaryTableProps) {
-  if (!kpis) {
-    return (
-      <Card
-        component="section"
-        sx={{
-          width: {
-            xs: '100%',
-            lg: 'min(1800px, calc(100vw - 32px))',
-          },
-
-          maxWidth: 'none',
-
-          position: {
-            lg: 'relative',
-          },
-
-          left: {
-            lg: '50%',
-          },
-
-          transform: {
-            lg: 'translateX(-50%)',
-          },
-
-          border: 'none',
-          borderRadius: 3,
 
           backgroundColor: '#ffffff',
 
           boxShadow:
-            '0 3px 10px rgba(15, 23, 42, 0.07), ' +
-            '0 12px 30px rgba(15, 23, 42, 0.06)',
+            '0 3px 10px rgba(15, 23, 42, 0.06)',
 
-          overflow: 'hidden',
+          '& svg': {
+            fontSize: 21,
+          },
+        }}
+      >
+        {icon}
+      </Box>
+
+      <Box
+        sx={{
+          minWidth: 0,
+          flex: 1,
+
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <Typography
+          variant="caption"
           sx={{
-            color: '#b91c1c',
+            display: 'block',
+
+            minHeight: '2.2em',
+
+            color: '#64748b',
+
+            fontSize: '0.73rem',
             fontWeight: 800,
+
+            lineHeight: 1.1,
           }}
         >
-          Os dados de tributos ainda não estão
-          disponíveis.
+          {title}
         </Typography>
-      </Card>
-    );
-  }
 
-  const impostos =
-    kpis.impostos ??
-    emptyImpostos;
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(2, minmax(0, 1fr))',
 
+            gap: 1.25,
+
+            mt: 0.35,
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                color,
+
+                fontSize: '0.63rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Operações
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.2,
+
+                color,
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.06rem',
+                },
+
+                lineHeight: 1.2,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={operations}
+                delayStep={60}
+              />
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: 0,
+
+              pl: 1.25,
+
+              borderLeft:
+                '1px solid rgba(148, 163, 184, 0.22)',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                color: '#C96A16',
+
+                fontSize: '0.63rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}
+            >
+              + Bonificado
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.2,
+
+                color: '#C96A16',
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.06rem',
+                },
+
+                lineHeight: 1.2,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={bonus}
+                delayStep={60}
+              />
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: 0.7,
+
+            mt: 'auto',
+            pt: 0.65,
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              color: '#94a3b8',
+
+              fontSize: '0.66rem',
+              fontWeight: 700,
+
+              letterSpacing: '0.03em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Total
+          </Typography>
+
+          <Typography
+            component="div"
+            sx={{
+              color: '#0f172a',
+
+              fontSize: '1rem',
+              lineHeight: 1.2,
+              fontWeight: 900,
+              letterSpacing: '-0.025em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <RollingCurrency
+              value={total}
+              delayStep={70}
+            />
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+function ChargesMetric({
+  taxes,
+  commission,
+}: ChargesMetricProps) {
+  return (
+    <Box
+      sx={{
+        minWidth: 0,
+        height: '100%',
+
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 1.4,
+
+        px: {
+          xs: 2,
+          md: 2.25,
+        },
+
+        py: {
+          xs: 1.8,
+          md: 2,
+        },
+
+        borderRadius: 2.5,
+
+        backgroundColor:
+          'rgba(193, 141, 52, 0.07)',
+
+        border:
+          '1px solid rgba(148, 163, 184, 0.13)',
+
+        transition:
+          'transform 160ms ease, box-shadow 160ms ease',
+
+        '&:hover': {
+          transform: 'translateY(-2px)',
+
+          boxShadow:
+            '0 8px 22px rgba(15, 23, 42, 0.07)',
+        },
+      }}
+    >
+      <Box
+        sx={{
+          width: 40,
+          height: 40,
+
+          display: 'grid',
+          placeItems: 'center',
+
+          flexShrink: 0,
+
+          borderRadius: 2,
+
+          color: '#C18D34',
+
+          backgroundColor: '#ffffff',
+
+          boxShadow:
+            '0 3px 10px rgba(15, 23, 42, 0.06)',
+
+          '& svg': {
+            fontSize: 21,
+          },
+        }}
+      >
+        <ReceiptLongOutlinedIcon />
+      </Box>
+
+      <Box
+        sx={{
+          minWidth: 0,
+          flex: 1,
+
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+
+            minHeight: '2.2em',
+
+            color: '#64748b',
+
+            fontSize: '0.73rem',
+            fontWeight: 800,
+
+            lineHeight: 1.1,
+          }}
+        >
+          Encargos consolidados
+        </Typography>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(2, minmax(0, 1fr))',
+
+            gap: 1.25,
+
+            mt: 0.35,
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                color: '#C18D34',
+
+                fontSize: '0.63rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Tributos
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.2,
+
+                color: '#C18D34',
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.06rem',
+                },
+
+                lineHeight: 1.2,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={taxes}
+                delayStep={60}
+              />
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: 0,
+
+              pl: 1.25,
+
+              borderLeft:
+                '1px solid rgba(148, 163, 184, 0.22)',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+
+                color: '#F97316',
+
+                fontSize: '0.63rem',
+                fontWeight: 900,
+
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Comissão
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.2,
+
+                color: '#F97316',
+
+                fontSize: {
+                  xs: '0.98rem',
+                  md: '1.06rem',
+                },
+
+                lineHeight: 1.2,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={commission}
+                delayStep={60}
+              />
+            </Typography>
+          </Box>
+        </Box>
+
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+
+            mt: 'auto',
+            pt: 0.65,
+
+            color: '#94a3b8',
+
+            fontSize: '0.66rem',
+            fontWeight: 600,
+
+            lineHeight: 1.35,
+          }}
+        >
+          Tributos e comissão
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+export function SummarySection({
+  kpis,
+}: SummarySectionProps) {
   /*
-   * VALORES
-   */
-
-  const valorVendas =
-    safeNumber(
-      kpis.vendas?.total_vendas,
-    );
-
-  const valorDevolucoes =
-    negativeValue(
-      safeNumber(
-        kpis.vendas?.total_devolucoes,
-      ),
-    );
-
-  const valorInternoObrasBruto =
-    safeNumber(
-      kpis.interno_obras
-        ?.total_bruto ??
-      kpis.interno_obras?.total,
-    );
-
-  const valorDevolucoesInternoObras =
-    negativeValue(
-      safeNumber(
-        kpis.devolucoes_interno_obras
-          ?.total,
-      ),
-    );
-
-  /*
-   * BONIFICAÇÕES:
+   * REMESSAS
    *
-   * valor da nota, sem receita efetiva,
-   * mas dentro da base de IRPJ/CSLL.
-   */
-
-  const valorBonificados =
-    safeNumber(
-      kpis.bonificados?.valor_nota,
-    );
-
-  /*
-   * REMESSA FUTURA:
-   * valor faturado da nota principal.
+   * Remessa futura e Remessa transporte são
+   * consultas distintas, as duas por cabeçalho:
+   *
+   * - remessas.sql (TOP 1009):
+   *   faturamento e custo próprio da nota-mãe.
+   *
+   * - remessas_transporte.sql (TOP 1157):
+   *   valor, impostos e custo das notas filhas,
+   *   ou seja, o que já foi entregue.
    */
 
   const valorRemessaFutura =
@@ -713,49 +1197,67 @@ export function TaxSummaryTable({
         ?.total_faturamento,
     );
 
-  /*
-   * REMESSA TRANSPORTE:
-   * valor real das notas filhas TOP 1157,
-   * vindo de remessas_transporte.sql.
-   */
-
   const valorRemessaTransporte =
     safeNumber(
       kpis.remessa_transporte
-        ?.valor_nota,
+        ?.valor_nota ??
+      kpis.remessa_futura
+        ?.total_entregue,
+    );
+
+  const saldoRemessa =
+    kpis.remessa_futura?.saldo == null
+      ? valorRemessaFutura -
+        valorRemessaTransporte
+      : safeNumber(
+          kpis.remessa_futura.saldo,
+        );
+
+  /*
+   * Custo próprio da nota-mãe, calculado no
+   * cabeçalho da própria remessas.sql.
+   */
+
+  const custoRemessa =
+    safeNumber(
+      kpis.remessa_futura
+        ?.custo_total,
     );
 
   /*
-   * CONSOLIDADO:
+   * Custo já baixado pelas notas filhas.
    *
-   * Vendas
-   * - devoluções
-   * + Bonificações
-   * + Interno Obras
-   * + Remessa futura
-   *
-   * A bonificação entra porque compõe a base
-   * de IRPJ/CSLL, mesmo sem receita efetiva.
-   *
-   * A Remessa transporte fica de fora:
-   * ela é a entrega das notas filhas da
-   * própria Remessa futura, cujo valor
-   * já foi faturado e contado acima.
-   *
-   * Mesma regra usada nos impostos, no
-   * IRPJ/CSLL e na comissão.
+   * O backend entrega isso pronto em
+   * remessa_futura.custo_entregue; a Remessa
+   * transporte fica de reserva.
    */
 
-  const valorConsolidado =
-    valorVendas +
-    valorDevolucoes +
-    valorBonificados +
-    valorInternoObrasBruto +
-    valorDevolucoesInternoObras +
-    valorRemessaFutura;
+  const custoRemessaEntregue =
+    kpis.remessa_futura
+      ?.custo_entregue == null
+      ? safeNumber(
+          kpis.remessa_transporte
+            ?.custo_medio_sem_icms_total ??
+          kpis.remessa_transporte
+            ?.custo_total,
+        )
+      : safeNumber(
+          kpis.remessa_futura
+            .custo_entregue,
+        );
+
+  const saldoCustoRemessa =
+    kpis.remessa_futura
+      ?.saldo_custo == null
+      ? custoRemessa -
+        custoRemessaEntregue
+      : safeNumber(
+          kpis.remessa_futura
+            .saldo_custo,
+        );
 
   /*
-   * CUSTOS
+   * CUSTOS POR ORIGEM
    */
 
   const custoVendas =
@@ -763,45 +1265,72 @@ export function TaxSummaryTable({
       kpis.vendas?.custo_total,
     );
 
-  /*
-   * DEVOLUÇÕES:
-   *
-   * mesmo custo médio dos itens da nota,
-   * separado apenas pelas TOPs 12xx.
-   *
-   * A mercadoria voltou, então o custo
-   * entregue é estornado.
-   */
-
   const custoDevolucoes =
     safeNumber(
       kpis.vendas?.custo_devolucoes,
     );
 
-  const custoInternoObrasBruto =
+  const custoDevolucoesInternoObras =
     safeNumber(
-      kpis.interno_obras
-        ?.custo_bruto ??
-      kpis.interno_obras
+      kpis.devolucoes_interno_obras
         ?.custo_total,
     );
 
-  const custoDevolucoesInternoObras =
-    negativeValue(
+  const custoTotalDevolucoes =
+    custoDevolucoes +
+    custoDevolucoesInternoObras;
+
+  /*
+   * O KPI principal de Interno Obras é líquido.
+   *
+   * Para montar o consolidado sem descontar a
+   * devolução duas vezes, usamos o custo bruto e
+   * abatemos as duas categorias logo abaixo.
+   */
+
+  const custoInternoObrasBruto =
+    safeNumber(
+      kpis.interno_obras?.custo_bruto ??
       safeNumber(
-        kpis.devolucoes_interno_obras
-          ?.custo_total,
-      ),
+        kpis.interno_obras?.custo_total,
+      ) + custoDevolucoesInternoObras,
     );
+
+  const custoInternoObras =
+    safeNumber(
+      kpis.interno_obras?.custo_total,
+    );
+
+  /*
+   * DEVOLUÇÕES
+   */
+
+  const totalDevolucoes =
+    safeNumber(
+      kpis.vendas?.total_devolucoes,
+    );
+
+  const totalDevolucoesInternoObras =
+    safeNumber(
+      kpis.devolucoes_interno_obras
+        ?.total,
+    );
+
+  const totalGeralDevolucoes =
+    totalDevolucoes +
+    totalDevolucoesInternoObras;
 
   /*
    * BONIFICADOS:
    *
-   * o contrário da devolução.
-   *
-   * A mercadoria sai e não volta, então o
-   * custo soma em vez de estornar.
+   * saem do estoque sem receita, então
+   * entram apenas como custo.
    */
+
+  const totalBonificados =
+    safeNumber(
+      kpis.bonificados?.valor_nota,
+    );
 
   const custoBonificados =
     safeNumber(
@@ -809,230 +1338,140 @@ export function TaxSummaryTable({
         ?.custo_medio_sem_icms_total,
     );
 
-  const custoRemessaFutura =
-    safeNumber(
-      kpis.remessa_futura
-        ?.custo_total,
-    );
-
-  const custoRemessaTransporte =
-    safeNumber(
-      kpis.remessa_transporte
-        ?.custo_medio_sem_icms_total ??
-      kpis.remessa_transporte
-        ?.custo_total,
-    );
-
   /*
-   * CUSTO ENTREGUE:
+   * CUSTO DAS OPERAÇÕES:
    *
-   * Vendas e Interno Obras são entregues
-   * no ato, então o custo aparece apenas
-   * como custo entregue, nunca nas duas
-   * colunas ao mesmo tempo.
+   * Custo próprio da remessa futura
+   * + custo das vendas normais
+   * + custo bruto do Interno Obras
+   * - devoluções normais
+   * - devoluções de Interno Obras
    *
-   * Remessa futura ainda não teve entrega,
-   * a baixa acontece na Remessa transporte.
+   * O custo entregue da Remessa transporte não
+   * entra aqui: ele apenas baixa o custo que já
+   * está dentro da Remessa futura.
    */
 
-  const custoEntregueVendas =
-    custoVendas;
-
-  const custoEntregueDevolucoes =
-    negativeValue(custoDevolucoes);
-
-  const custoEntregueInternoObras =
-    custoInternoObrasBruto;
-
-  const custoEntregueDevolucoesInternoObras =
-    custoDevolucoesInternoObras;
-
-  const custoEntregueRemessaTransporte =
-    custoRemessaTransporte;
-
-  const custoEntregueBonificados =
-    custoBonificados;
-
-  const custoEntregueConsolidado =
-    custoEntregueVendas +
-    custoEntregueDevolucoes +
-    custoEntregueInternoObras +
-    custoEntregueDevolucoesInternoObras +
-    custoEntregueBonificados +
-    custoEntregueRemessaTransporte;
+  const custoOperacoes =
+    custoRemessa +
+    custoVendas +
+    custoInternoObrasBruto -
+    custoTotalDevolucoes;
 
   /*
-   * VALOR CUSTO (coluna):
+   * TOTAL DE CUSTO:
    *
-   * Custo total da nota, seja remessa ou não.
+   * Operações + bonificados.
    *
-   * As três colunas respondem coisas
-   * diferentes:
+   * Fecha com a coluna "Valor custo" da linha
+   * Consolidado líquido da tabela de tributos.
+   */
+
+  const totalCusto =
+    custoOperacoes +
+    custoBonificados;
+
+  /*
+   * CUSTO ENTREGUE DAS OPERAÇÕES:
    *
-   * - Valor custo: quanto a operação custou
-   * - Custo entregue: quanto já saiu
-   * - Saldo custo: quanto falta sair
+   * Mesma conta, trocando o custo próprio da
+   * remessa pelo custo efetivamente entregue
+   * pelas notas TOP 1157.
+   */
+
+  const custoEntregueOperacoes =
+    custoRemessaEntregue +
+    custoVendas +
+    custoInternoObrasBruto -
+    custoTotalDevolucoes;
+
+  const totalCustoEntregue =
+    custoEntregueOperacoes +
+    custoBonificados;
+
+  /*
+   * SALDO DE CUSTOS:
    *
-   * A Remessa transporte não tem custo próprio:
-   * ela apenas entrega o custo que já está na
+   * Total de custo menos o custo já entregue.
+   *
+   * Como só a remessa tem saldo, este número
+   * acaba sendo o próprio saldo de custo da
    * Remessa futura.
    */
 
-  const custoConsolidado =
-    custoVendas +
-    custoEntregueDevolucoes +
-    custoBonificados +
-    custoInternoObrasBruto +
-    custoDevolucoesInternoObras +
-    custoRemessaFutura;
+  const saldoCustos =
+    totalCusto -
+    totalCustoEntregue;
 
   /*
-   * SALDO DE CUSTO POR LINHA:
+   * ENCARGOS CONSOLIDADOS
    *
-   * Valor custo menos custo entregue.
+   * O consolidado do backend já contém os
+   * tributos da Remessa futura.
    *
-   * Vendas, Devoluções, Bonificações e Interno
-   * Obras entregam no ato, logo saldo zero.
+   * A Remessa transporte NÃO abate nada:
+   * os impostos das notas filhas são os mesmos
+   * da operação já contada na Remessa futura,
+   * então subtrair dobrava o efeito.
    *
-   * Remessa futura carrega o custo pendente
-   * e a Remessa transporte abate esse custo
-   * conforme entrega as notas filhas.
+   * A bonificação soma seu imposto real.
    */
 
-  const saldoCustoVendas =
-    calculateSaldoCusto(
-      custoVendas,
-      custoEntregueVendas,
-    );
-
-  const saldoCustoDevolucoes =
-    calculateSaldoCusto(
-      custoEntregueDevolucoes,
-      custoEntregueDevolucoes,
-    );
-
-  const saldoCustoInternoObras =
-    calculateSaldoCusto(
-      custoInternoObrasBruto,
-      custoEntregueInternoObras,
-    );
-
-  const saldoCustoDevolucoesInternoObras =
-    calculateSaldoCusto(
-      custoDevolucoesInternoObras,
-      custoEntregueDevolucoesInternoObras,
+  const impostosBonificados =
+    safeNumber(
+      kpis.bonificados
+        ?.valor_impostos,
     );
 
   /*
-   * A bonificação entrega no ato, então não
-   * sobra saldo.
+   * IRPJ/CSLL = 3,35% sobre o valor de cada
+   * origem, igual ao cálculo feito na tabela
+   * "Tributos, custos e comissão".
+   *
+   * A Remessa transporte não soma IRPJ/CSLL
+   * aqui pela mesma razão da tabela: ela é
+   * a entrega da Remessa futura, cujo valor
+   * já foi tributado acima.
    */
 
-  const saldoCustoBonificados =
-    calculateSaldoCusto(
-      custoBonificados,
-      custoEntregueBonificados,
+  const valorInternoObrasBruto =
+    safeNumber(
+      kpis.interno_obras?.total_bruto ??
+      kpis.interno_obras?.total,
     );
-
-  const saldoCustoRemessaFutura =
-    calculateSaldoCusto(
-      custoRemessaFutura,
-      null,
-    );
-
-  const saldoCustoRemessaTransporte =
-    calculateSaldoCusto(
-      null,
-      custoEntregueRemessaTransporte,
-    );
-
-  const saldoCustoConsolidado =
-    Number(
-      (
-        safeNumber(
-          saldoCustoVendas,
-        ) +
-        safeNumber(
-          saldoCustoDevolucoes,
-        ) +
-        safeNumber(
-          saldoCustoInternoObras,
-        ) +
-        safeNumber(
-          saldoCustoDevolucoesInternoObras,
-        ) +
-        safeNumber(
-          saldoCustoBonificados,
-        ) +
-        safeNumber(
-          saldoCustoRemessaFutura,
-        ) +
-        safeNumber(
-          saldoCustoRemessaTransporte,
-        )
-      ).toFixed(2),
-    );
-
-  /*
-   * IRPJ/CSLL = 3,35% SOBRE O VALOR.
-   *
-   * APLICA-SE:
-   * - Vendas
-   * - Devoluções, subtraindo
-   * - Bonificações
-   * - Interno Obras
-   * - Remessa futura
-   *
-   * REMESSA TRANSPORTE:
-   * abate proporcionalmente o IRPJ/CSLL
-   * correspondente ao valor já entregue.
-   */
 
   const irpjCsslVendas =
-    calculateIrpjCssl(
-      valorVendas,
-    );
+    safeNumber(
+      kpis.vendas?.total_vendas,
+    ) * IRPJ_CSSL_RATE;
 
   const irpjCsslDevolucoes =
-    negativeValue(
-      calculateIrpjCssl(
-        Math.abs(
-          valorDevolucoes,
-        ),
-      ),
+    -(
+      totalDevolucoes *
+      IRPJ_CSSL_RATE
     );
 
   const irpjCsslBonificados =
-    calculateIrpjCssl(
-      valorBonificados,
-    );
+    totalBonificados *
+    IRPJ_CSSL_RATE;
 
   const irpjCsslInternoObras =
-    calculateIrpjCssl(
-      valorInternoObrasBruto,
-    );
+    valorInternoObrasBruto *
+    IRPJ_CSSL_RATE;
 
   const irpjCsslDevolucoesInternoObras =
-    negativeValue(
+    -(
       kpis.devolucoes_interno_obras
-        ?.irpj_cssl == null
-        ? calculateIrpjCssl(
-            Math.abs(
-              valorDevolucoesInternoObras,
-            ),
-          )
-        : safeNumber(
-            kpis.devolucoes_interno_obras
-              .irpj_cssl,
-          ),
+        ?.irpj_cssl ??
+      totalDevolucoesInternoObras *
+        IRPJ_CSSL_RATE
     );
 
   const irpjCsslRemessaFutura =
-    calculateIrpjCssl(
-      valorRemessaFutura,
-    );
+    valorRemessaFutura *
+    IRPJ_CSSL_RATE;
 
-  const irpjCsslConsolidado =
+  const totalIrpjCssl =
     irpjCsslVendas +
     irpjCsslDevolucoes +
     irpjCsslBonificados +
@@ -1040,1269 +1479,407 @@ export function TaxSummaryTable({
     irpjCsslDevolucoesInternoObras +
     irpjCsslRemessaFutura;
 
-  /*
-   * IMPOSTOS
-   */
+  const totalImpostos =
+    safeNumber(
+      kpis.impostos?.consolidado_liquido
+        ?.total_tributos,
+    ) +
+    impostosBonificados +
+    totalIrpjCssl;
 
-  const impostosVendas =
-    normalizeTaxGroup(
-      impostos.vendas,
+  const totalComissao =
+    safeNumber(
+      kpis.impostos?.consolidado_liquido
+        ?.comissao,
     );
-
-  const impostosDevolucoes =
-    negativeTaxGroup(
-      impostos.devolucoes,
-    );
-
-  const impostosInternoObrasLiquido =
-    normalizeTaxGroup(
-      impostos.interno_obras,
-    );
-
-  const impostosDevolucoesInternoObrasPositivos =
-    normalizeTaxGroup(
-      impostos.devolucoes_interno_obras,
-    );
-
-  /*
-   * O backend entrega Interno Obras líquido.
-   *
-   * líquido + devolução = valor bruto.
-   */
-  const impostosInternoObrasBruto =
-    sumTaxGroups(
-      impostosInternoObrasLiquido,
-      impostosDevolucoesInternoObrasPositivos,
-    );
-
-  const impostosDevolucoesInternoObras =
-    negativeTaxGroup(
-      impostos.devolucoes_interno_obras,
-    );
-
-  /*
-   * Os impostos da operação permanecem
-   * na Remessa futura.
-   */
-
-  const impostosRemessaFutura =
-    normalizeTaxGroup(
-      impostos.remessa_futura,
-    );
-
-  /*
-   * A Remessa transporte usa os impostos reais
-   * das notas filhas TOP 1157, retornados pelo
-   * grupo próprio remessa_transporte.
-   *
-   * Os valores são mantidos positivos no backend
-   * e exibidos como abatimento nesta tabela.
-   */
-  const impostosRemessaTransporte =
-    negativeTaxGroup({
-      icms: safeNumber(
-        kpis.remessa_transporte
-          ?.valor_icms,
-      ),
-
-      pis: safeNumber(
-        kpis.remessa_transporte
-          ?.valor_pis,
-      ),
-
-      cofins: safeNumber(
-        kpis.remessa_transporte
-          ?.valor_cofins,
-      ),
-
-      federais:
-        safeNumber(
-          kpis.remessa_transporte
-            ?.valor_pis,
-        ) +
-        safeNumber(
-          kpis.remessa_transporte
-            ?.valor_cofins,
-        ),
-
-      total_tributos: safeNumber(
-        kpis.remessa_transporte
-          ?.valor_impostos,
-      ),
-
-      comissao: safeNumber(
-        kpis.remessa_transporte
-          ?.valor_comissao,
-      ),
-    });
-
-  /*
-   * O ICMS da bonificação é pago pela
-   * empresa, então entra como imposto real.
-   */
-
-  const impostosBonificados =
-    normalizeTaxGroup({
-      icms: safeNumber(
-        kpis.bonificados?.valor_icms,
-      ),
-
-      pis: safeNumber(
-        kpis.bonificados?.valor_pis,
-      ),
-
-      cofins: safeNumber(
-        kpis.bonificados?.valor_cofins,
-      ),
-
-      federais: 0,
-
-      total_tributos: safeNumber(
-        kpis.bonificados?.valor_impostos,
-      ),
-
-      comissao: 0,
-    });
-
-  /*
-   * O consolidado do backend ainda não
-   * considera os bonificados, então somamos
-   * aqui para a coluna fechar.
-   */
-
-  const impostosConsolidado =
-    sumTaxGroups(
-      impostosVendas,
-      impostosDevolucoes,
-      impostosBonificados,
-
-      impostosInternoObrasBruto,
-      impostosDevolucoesInternoObras,
-
-      impostosRemessaFutura,
-      impostosRemessaTransporte,
-    );
-
-  const rows: TaxTableRow[] = [
-    {
-      key: 'vendas',
-      label: 'Vendas',
-
-      valor: valorVendas,
-
-      valorCusto:
-        custoVendas,
-
-      valorCustoEntregue:
-        custoEntregueVendas,
-
-      saldoCusto:
-        saldoCustoVendas,
-
-      impostos:
-        impostosVendas,
-
-      irpjCssl:
-        irpjCsslVendas,
-
-      comissao:
-        impostosVendas.comissao,
-    },
-
-    {
-      key: 'devolucoes',
-      label: 'Devoluções',
-
-      valor:
-        valorDevolucoes,
-
-      valorCusto:
-        custoEntregueDevolucoes,
-
-      valorCustoEntregue:
-        custoEntregueDevolucoes,
-
-      saldoCusto:
-        saldoCustoDevolucoes,
-
-      impostos:
-        impostosDevolucoes,
-
-      irpjCssl:
-        irpjCsslDevolucoes,
-
-      comissao:
-        impostosDevolucoes.comissao,
-
-      negative: true,
-    },
-
-    {
-      key: 'bonificados',
-      label: 'Bonificações',
-
-      valor: valorBonificados,
-
-      valorCusto:
-        custoBonificados,
-
-      valorCustoEntregue:
-        custoEntregueBonificados,
-
-      saldoCusto:
-        saldoCustoBonificados,
-
-      impostos:
-        impostosBonificados,
-
-      irpjCssl:
-        irpjCsslBonificados,
-
-      comissao: null,
-
-      bonificado: true,
-    },
-
-    {
-      key: 'interno_obras',
-      label: 'Interno Obras',
-
-      valor:
-        valorInternoObrasBruto,
-
-      valorCusto:
-        custoInternoObrasBruto,
-
-      valorCustoEntregue:
-        custoEntregueInternoObras,
-
-      saldoCusto:
-        saldoCustoInternoObras,
-
-      impostos:
-        impostosInternoObrasBruto,
-
-      irpjCssl:
-        irpjCsslInternoObras,
-
-      comissao:
-        impostosInternoObrasBruto.comissao,
-    },
-
-    {
-      key: 'devolucoes_interno_obras',
-      label: 'Devoluções Interno Obras',
-
-      valor:
-        valorDevolucoesInternoObras,
-
-      valorCusto:
-        custoDevolucoesInternoObras,
-
-      valorCustoEntregue:
-        custoEntregueDevolucoesInternoObras,
-
-      saldoCusto:
-        saldoCustoDevolucoesInternoObras,
-
-      impostos:
-        impostosDevolucoesInternoObras,
-
-      irpjCssl:
-        irpjCsslDevolucoesInternoObras,
-
-      comissao:
-        impostosDevolucoesInternoObras.comissao,
-
-      negative: true,
-      internalReturn: true,
-    },
-
-    {
-      key: 'remessa_futura',
-      label: 'Remessa futura',
-
-      valor:
-        valorRemessaFutura,
-
-      valorCusto:
-        custoRemessaFutura,
-
-      valorCustoEntregue:
-        null,
-
-      saldoCusto:
-        saldoCustoRemessaFutura,
-
-      impostos:
-        impostosRemessaFutura,
-
-      irpjCssl:
-        irpjCsslRemessaFutura,
-
-      comissao:
-        impostosRemessaFutura.comissao,
-
-      remessa: true,
-    },
-
-    {
-      key: 'remessa_transporte',
-      label: 'Remessa transporte',
-
-      valor:
-        valorRemessaTransporte,
-
-      valorCusto:
-        null,
-
-      valorCustoEntregue:
-        custoEntregueRemessaTransporte,
-
-      saldoCusto:
-        saldoCustoRemessaTransporte,
-
-      impostos:
-        impostosRemessaTransporte,
-
-      irpjCssl: null,
-      comissao: null,
-
-      remessa: true,
-      entrega: true,
-      taxNegative: true,
-    },
-
-    {
-      key: 'consolidado_liquido',
-      label: 'Consolidado líquido',
-
-      valor:
-        valorConsolidado,
-
-      valorCusto:
-        custoConsolidado,
-
-      valorCustoEntregue:
-        custoEntregueConsolidado,
-
-      saldoCusto:
-        saldoCustoConsolidado,
-
-      impostos:
-        impostosConsolidado,
-
-      irpjCssl:
-        irpjCsslConsolidado,
-
-      comissao:
-        impostosConsolidado.comissao,
-
-      consolidated: true,
-    },
-  ];
 
   return (
-    <Card
-      component="section"
-      sx={{
-        width: {
-          xs: '100%',
-          lg: 'min(1800px, calc(100vw - 32px))',
-        },
-
-        maxWidth: 'none',
-
-        position: {
-          lg: 'relative',
-        },
-
-        left: {
-          lg: '50%',
-        },
-
-        transform: {
-          lg: 'translateX(-50%)',
-        },
-
-        border: 'none',
-        borderRadius: 3,
-
-        backgroundColor: '#ffffff',
-
-        boxShadow:
-          '0 3px 10px rgba(15, 23, 42, 0.07), ' +
-          '0 12px 30px rgba(15, 23, 42, 0.06)',
-
-        overflow: 'hidden',
-      }}
-    >
-      {/* CABEÇALHO */}
-
+    <Box component="section">
+      {/* TÍTULO */}
       <Box
         sx={{
-          display: 'flex',
+          mb: 2,
+        }}
+      >
+        <Typography
+          component="h2"
+          variant="h5"
+          sx={{
+            color: 'text.primary',
+            fontWeight: 900,
+            letterSpacing: '-0.025em',
+          }}
+        >
+          Resumo executivo
+        </Typography>
 
-          alignItems: {
-            xs: 'flex-start',
-            md: 'center',
+        <Typography
+          component="p"
+          variant="body2"
+          sx={{
+            mt: 0.5,
+            color: 'text.secondary',
+          }}
+        >
+          Visão geral dos principais valores da obra.
+        </Typography>
+      </Box>
+
+      {/* CARDS PRINCIPAIS */}
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+
+          alignItems: 'stretch',
+
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            md: 'repeat(3, minmax(0, 1fr))',
+            xl: 'repeat(6, minmax(0, 1fr))',
           },
 
-          justifyContent:
-            'space-between',
-
-          flexDirection: {
-            xs: 'column',
-            md: 'row',
+          '& > *': {
+            height: '100%',
           },
+        }}
+      >
+        <KpiCard
+          title="Faturamento remessas"
+          value={valorRemessaFutura}
+          subtitle={`Custo: ${formatCurrency(
+            custoRemessa,
+          )}`}
+          subtitleColor="#FF746D"
+          icon={<PaymentsOutlinedIcon />}
+          tone="primary"
+          rollDelay={0}
+        />
 
-          gap: 2.5,
+        <KpiCard
+          title="Entregas remessa futura"
+          value={valorRemessaTransporte}
+          subtitle={`Custo entregue: ${formatCurrency(
+            custoRemessaEntregue,
+          )}`}
+          subtitleColor="#4EAAEF"
+          icon={
+            <LocalShippingOutlinedIcon />
+          }
+          tone="info"
+          rollDelay={70}
+        />
 
-          px: {
-            xs: 2,
-            md: 2.5,
-          },
+        <KpiCard
+          title="Saldo remessa"
+          value={saldoRemessa}
+          subtitle={`Saldo custo: ${formatCurrency(
+            saldoCustoRemessa,
+          )}`}
+          subtitleColor="#C18D34"
+          icon={
+            <PaidOutlinedIcon />
+          }
+          tone="warning"
+          rollDelay={140}
+        />
 
-          pt: {
-            xs: 2,
-            md: 2.5,
-          },
+        <KpiCard
+          title="Vendas normais"
+          value={safeNumber(
+            kpis.vendas?.total_vendas,
+          )}
+          subtitle={`Exceto Interno Obras e remessas • Custo: ${formatCurrency(
+            custoVendas,
+          )}`}
+          subtitleColor="#4EAAEF"
+          icon={<PaymentsOutlinedIcon />}
+          tone="info"
+          rollDelay={210}
+        />
 
-          pb: 2,
+        <KpiCard
+          title="Interno Obras"
+          value={safeNumber(
+            kpis.interno_obras?.total,
+          )}
+          subtitle={`Custo: ${formatCurrency(
+            custoInternoObras,
+          )}`}
+          subtitleColor="#4EAAEF"
+          icon={
+            <HandymanOutlinedIcon />
+          }
+          tone="secondary"
+          rollDelay={280}
+        />
+
+        <Box sx={{ position: 'relative' }}>
+          <BonusBubble
+            value={totalBonificados}
+            cost={custoBonificados}
+          />
+
+          <ReturnsBreakdownCard
+            salesReturns={totalDevolucoes}
+            internalReturns={
+              totalDevolucoesInternoObras
+            }
+            salesReturnCost={
+              custoDevolucoes
+            }
+            internalReturnCost={
+              custoDevolucoesInternoObras
+            }
+            totalReturns={
+              totalGeralDevolucoes
+            }
+            totalReturnCost={
+              custoTotalDevolucoes
+            }
+            rollDelay={350}
+          />
+        </Box>
+      </Box>
+
+      {/* CONSOLIDADO RÁPIDO */}
+      <Card
+        sx={{
+          mt: 2.5,
+
+          border: 'none',
+          borderRadius: 3,
+
+          backgroundColor: '#ffffff',
+
+          boxShadow:
+            '0 3px 10px rgba(15, 23, 42, 0.06), ' +
+            '0 12px 30px rgba(15, 23, 42, 0.055)',
+
+          overflow: 'hidden',
         }}
       >
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.3,
+            display: 'grid',
+
+            alignItems: 'stretch',
+
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, minmax(0, 1fr))',
+              xl: '1.35fr repeat(3, minmax(0, 1fr))',
+            },
+
+            gap: 1.25,
+
+            p: {
+              xs: 1.5,
+              md: 1.75,
+            },
           }}
         >
+          {/* SALDO DE CUSTOS */}
           <Box
             sx={{
-              width: 42,
-              height: 42,
+              position: 'relative',
+              overflow: 'hidden',
 
-              display: 'grid',
-              placeItems: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
 
-              flexShrink: 0,
+              minHeight: 132,
+
+              px: {
+                xs: 2,
+                md: 2.4,
+              },
+
+              py: 2,
 
               borderRadius: 2.5,
 
-              color: '#4f6edb',
+              color: '#ffffff',
 
-              backgroundColor:
-                'rgba(79, 110, 219, 0.11)',
+              background:
+                'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+
+              boxShadow:
+                '0 10px 24px rgba(15, 23, 42, 0.15)',
+
+              '&::after': {
+                content: '""',
+
+                position: 'absolute',
+
+                width: 180,
+                height: 180,
+
+                right: -90,
+                bottom: -120,
+
+                borderRadius: '50%',
+
+                backgroundColor:
+                  'rgba(193, 141, 52, 0.18)',
+
+                pointerEvents: 'none',
+              },
             }}
           >
-            <AccountBalanceRoundedIcon />
-          </Box>
-
-          <Box>
-            <Typography
-              component="h2"
+            <Box
               sx={{
-                color: '#0f172a',
+                position: 'relative',
+                zIndex: 1,
 
-                fontSize: {
-                  xs: '1.05rem',
-                  md: '1.2rem',
-                },
-
-                fontWeight: 900,
-
-                letterSpacing:
-                  '-0.025em',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 2,
               }}
             >
-              Tributos, custos e comissão
-            </Typography>
-
-            <Typography
-              sx={{
-                mt: 0.3,
-
-                color: '#64748b',
-
-                fontSize: '0.875rem',
-
-                fontWeight: 500,
-              }}
-            >
-              Valores, custos e encargos
-              separados por origem.
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'stretch',
-            flexWrap: 'wrap',
-            gap: 1.2,
-
-            width: {
-              xs: '100%',
-              md: 'auto',
-            },
-          }}
-        >
-          <SummaryItem
-            title="Tributos consolidados"
-            value={
-              impostosConsolidado
-                .total_tributos +
-              irpjCsslConsolidado
-            }
-            color={
-              taxColors.tributos
-            }
-            backgroundColor="rgba(245, 158, 11, 0.08)"
-          />
-
-          <SummaryItem
-            title="Comissão consolidada"
-            value={
-              impostosConsolidado
-                .comissao
-            }
-            color={
-              taxColors.comissao
-            }
-            backgroundColor="rgba(249, 115, 22, 0.08)"
-          />
-        </Box>
-      </Box>
-
-      {/* LEGENDA */}
-
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 1,
-
-          px: {
-            xs: 2,
-            md: 2.5,
-          },
-
-          pb: 2,
-        }}
-      >
-        <Chip
-          size="small"
-          label="Valor"
-          sx={{
-            color: taxColors.valor,
-
-            backgroundColor:
-              'rgba(15, 118, 110, 0.10)',
-
-            fontWeight: 800,
-          }}
-        />
-
-        <Chip
-          size="small"
-          label="Valor custo"
-          sx={{
-            color: taxColors.custo,
-
-            backgroundColor:
-              'rgba(220, 38, 38, 0.09)',
-
-            fontWeight: 800,
-          }}
-        />
-
-        <Chip
-          size="small"
-          label="Custo entregue"
-          sx={{
-            color:
-              taxColors.custoEntregue,
-
-            backgroundColor:
-              'rgba(2, 132, 199, 0.09)',
-
-            fontWeight: 800,
-          }}
-        />
-
-        <Chip
-          size="small"
-          label="Saldo custo"
-          sx={{
-            color:
-              taxColors.saldoCusto,
-
-            backgroundColor:
-              'rgba(193, 141, 52, 0.12)',
-
-            fontWeight: 800,
-          }}
-        />
-
-        <Chip
-          size="small"
-          label="ICMS"
-          sx={{
-            color: taxColors.icms,
-
-            backgroundColor:
-              'rgba(79, 110, 219, 0.10)',
-
-            fontWeight: 800,
-          }}
-        />
-
-        <Chip
-          size="small"
-          label="PIS"
-          sx={{
-            color: taxColors.pis,
-
-            backgroundColor:
-              'rgba(132, 169, 20, 0.10)',
-
-            fontWeight: 800,
-          }}
-        />
-
-        <Chip
-          size="small"
-          label="COFINS"
-          sx={{
-            color: taxColors.cofins,
-
-            backgroundColor:
-              'rgba(87, 91, 124, 0.10)',
-
-            fontWeight: 800,
-          }}
-        />
-
-        <Chip
-          size="small"
-          label={`IRPJ/CSLL ${IRPJ_CSSL_PERCENTUAL}%`}
-          sx={{
-            color:
-              taxColors.irpjCssl,
-
-            backgroundColor:
-              'rgba(147, 51, 234, 0.09)',
-
-            fontWeight: 800,
-          }}
-        />
-
-        <Chip
-          size="small"
-          label="Tributos"
-          sx={{
-            color:
-              taxColors.tributos,
-
-            backgroundColor:
-              'rgba(245, 158, 11, 0.10)',
-
-            fontWeight: 800,
-          }}
-        />
-
-        <Chip
-          size="small"
-          label="Comissão"
-          sx={{
-            color:
-              taxColors.comissao,
-
-            backgroundColor:
-              'rgba(249, 115, 22, 0.10)',
-
-            fontWeight: 800,
-          }}
-        />
-      </Box>
-
-      {/* TABELA */}
-
-      <TableContainer
-        sx={{
-          mx: {
-            xs: 1.5,
-            md: 2,
-          },
-
-          mb: {
-            xs: 1.5,
-            md: 2,
-          },
-
-          width: 'auto',
-
-          overflowX: 'auto',
-
-          borderRadius: 2.5,
-
-          border:
-            '1px solid rgba(148, 163, 184, 0.16)',
-        }}
-      >
-        <Table
-          size="small"
-          sx={{
-            width: '100%',
-
-            minWidth: {
-              xs: 1360,
-              lg: 1280,
-            },
-          }}
-        >
-          <TableHead>
-            <TableRow>
-              <TableCell
-                sx={{
-                  ...headerCellSx,
-                  ...stickyCellSx,
-                }}
-              >
-                Origem
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-                  color:
-                    taxColors.valor,
-                }}
-              >
-                Valor
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-                  color:
-                    taxColors.custo,
-                }}
-              >
-                Valor custo
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-
-                  color:
-                    taxColors
-                      .custoEntregue,
-                }}
-              >
-                Custo entregue
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-
-                  color:
-                    taxColors
-                      .saldoCusto,
-                }}
-              >
-                Saldo custo
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-                  color:
-                    taxColors.icms,
-                }}
-              >
-                ICMS
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-                  color:
-                    taxColors.pis,
-                }}
-              >
-                PIS
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-                  color:
-                    taxColors.cofins,
-                }}
-              >
-                COFINS
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-
-                  color:
-                    taxColors
-                      .irpjCssl,
-                }}
-              >
-                IRPJ/CSLL 3,35%
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-
-                  color:
-                    taxColors
-                      .tributos,
-                }}
-              >
-                Tributos
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  ...headerCellSx,
-
-                  color:
-                    taxColors
-                      .comissao,
-                }}
-              >
-                Comissão
-              </TableCell>
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {rows.map((row) => {
-              const consolidated =
-                row.consolidated ===
-                true;
-
-              const negative =
-                row.negative === true;
-
-              const internalReturn =
-                row.internalReturn === true;
-
-              const taxNegative =
-                row.taxNegative === true;
-
-              /*
-               * A célula fixa precisa repetir o
-               * fundo da linha, senão o conteúdo
-               * passa por baixo dela no scroll.
-               */
-              const rowBackground =
-                consolidated
-                  ? '#eef1fb'
-                  : negative
-                    ? '#fdf3f3'
-                    : '#ffffff';
-
-              const rowHoverBackground =
-                consolidated
-                  ? '#e7ebf8'
-                  : negative
-                    ? '#fbebeb'
-                    : '#f2f9fe';
-
-              return (
-                <TableRow
-                  key={row.key}
-                  hover={!consolidated}
+              <Box>
+                <Typography
+                  variant="caption"
                   sx={{
-                    backgroundColor:
-                      rowBackground,
+                    color:
+                      'rgba(255, 255, 255, 0.68)',
 
-                    '&:hover': {
-                      backgroundColor:
-                        rowHoverBackground,
-
-                      '& td.origem-fixa': {
-                        backgroundColor:
-                          rowHoverBackground,
-                      },
-                    },
-
-                    '&:last-child td': {
-                      borderBottom:
-                        'none',
-                    },
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
                   }}
                 >
-                  <TableCell
-                    className="origem-fixa"
-                    sx={{
-                      ...bodyCellSx,
-                      ...stickyCellSx,
+                  Saldo de custos
+                </Typography>
 
-                      backgroundColor:
-                        rowBackground,
+                <Typography
+                  component="div"
+                  sx={{
+                    mt: 0.7,
 
-                      color: negative
-                        ? taxColors
-                            .negative
-                        : consolidated
-                          ? '#0f172a'
-                          : taxColors
-                              .normal,
+                    color: '#ffffff',
 
-                      fontWeight:
-                        consolidated
-                          ? 900
-                          : 750,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: 'flex',
+                    fontSize: {
+                      xs: '1.55rem',
+                      md: '1.8rem',
+                    },
 
-                        alignItems:
-                          'center',
-
-                        gap: 1.1,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width:
-                            consolidated
-                              ? 9
-                              : 7,
-
-                          height:
-                            consolidated
-                              ? 9
-                              : 7,
-
-                          flexShrink: 0,
-
-                          borderRadius:
-                            '50%',
-
-                          backgroundColor:
-                            negative
-                              ? taxColors
-                                  .negative
-                              : consolidated
-                                ? '#4f6edb'
-                                : row.bonificado
-                                  ? taxColors
-                                      .bonificado
-                                  : row.remessa
-                                    ? '#0284c7'
-                                    : '#cbd5e1',
-                        }}
-                      />
-
-                      <Typography
-                        component="span"
-                        sx={{
-                          color:
-                            'inherit',
-
-                          fontSize:
-                            'inherit',
-
-                          fontWeight:
-                            'inherit',
-                        }}
-                      >
-                        {row.label}
-                      </Typography>
-
-                      {negative ? (
-                        <Chip
-                          label={
-                            internalReturn
-                              ? 'ABATE INTERNO'
-                              : 'SUBTRAI'
-                          }
-                          size="small"
-                          sx={{
-                            height: 21,
-                            ml: 0.4,
-
-                            color:
-                              taxColors
-                                .negative,
-
-                            backgroundColor:
-                              'rgba(220, 38, 38, 0.09)',
-
-                            fontSize:
-                              '0.60rem',
-
-                            fontWeight:
-                              900,
-                          }}
-                        />
-                      ) : null}
-
-                      {row.entrega ? (
-                        <Chip
-                          label={
-                            row.bonificado
-                              ? 'SÓ CUSTO'
-                              : 'NÃO SOMA VALOR'
-                          }
-                          size="small"
-                          sx={{
-                            height: 21,
-                            ml: 0.4,
-
-                            color:
-                              row.bonificado
-                                ? taxColors
-                                    .bonificado
-                                : '#0284c7',
-
-                            backgroundColor:
-                              row.bonificado
-                                ? 'rgba(201, 106, 22, 0.10)'
-                                : 'rgba(2, 132, 199, 0.10)',
-
-                            fontSize:
-                              '0.60rem',
-
-                            fontWeight:
-                              900,
-                          }}
-                        />
-                      ) : null}
-
-                      {taxNegative ? (
-                        <Chip
-                          label="ABATE ENCARGOS"
-                          size="small"
-                          sx={{
-                            height: 21,
-                            ml: 0.4,
-
-                            color:
-                              taxColors.negative,
-
-                            backgroundColor:
-                              'rgba(220, 38, 38, 0.09)',
-
-                            fontSize:
-                              '0.60rem',
-
-                            fontWeight:
-                              900,
-                          }}
-                        />
-                      ) : null}
-
-                      {consolidated ? (
-                        <Chip
-                          label="TOTAL"
-                          size="small"
-                          sx={{
-                            height: 21,
-                            ml: 0.4,
-
-                            color:
-                              '#4f6edb',
-
-                            backgroundColor:
-                              'rgba(79, 110, 219, 0.11)',
-
-                            fontSize:
-                              '0.62rem',
-
-                            fontWeight:
-                              900,
-                          }}
-                        />
-                      ) : null}
-                    </Box>
-                  </TableCell>
-
-                  <CurrencyCell
-                    value={row.valor}
-                    color={
-                      taxColors.valor
-                    }
-                    emphasized={
-                      consolidated
-                    }
-                    negative={
-                      negative
-                    }
+                    lineHeight: 1.1,
+                    fontWeight: 900,
+                    letterSpacing: '-0.04em',
+                  }}
+                >
+                  <RollingCurrency
+                    value={saldoCustos}
+                    duration={1300}
+                    delayStep={85}
                   />
+                </Typography>
+              </Box>
 
-                  <CurrencyCell
-                    value={
-                      row.valorCusto
-                    }
-                    color={
-                      taxColors.custo
-                    }
-                    emphasized={
-                      consolidated
-                    }
-                  />
+              <Box
+                sx={{
+                  width: 45,
+                  height: 45,
 
-                  <CurrencyCell
-                    value={
-                      row
-                        .valorCustoEntregue
-                    }
-                    color={
-                      taxColors
-                        .custoEntregue
-                    }
-                    emphasized={
-                      consolidated
-                    }
-                    negative={
-                      negative
-                    }
-                  />
+                  display: 'grid',
+                  placeItems: 'center',
 
-                  <SaldoCustoCell
-                    value={
-                      row.saldoCusto
-                    }
-                    consolidated={
-                      consolidated
-                    }
-                  />
+                  flexShrink: 0,
 
-                  <TaxCell
-                    value={
-                      row.impostos.icms
-                    }
-                    color={
-                      taxColors.icms
-                    }
-                    consolidated={
-                      consolidated
-                    }
-                    negative={
-                      negative ||
-                      taxNegative
-                    }
-                  />
+                  borderRadius: 2.5,
 
-                  <TaxCell
-                    value={
-                      row.impostos.pis
-                    }
-                    color={
-                      taxColors.pis
-                    }
-                    consolidated={
-                      consolidated
-                    }
-                    negative={
-                      negative ||
-                      taxNegative
-                    }
-                  />
+                  color: '#ffffff',
 
-                  <TaxCell
-                    value={
-                      row.impostos
-                        .cofins
-                    }
-                    color={
-                      taxColors.cofins
-                    }
-                    consolidated={
-                      consolidated
-                    }
-                    negative={
-                      negative ||
-                      taxNegative
-                    }
-                  />
+                  backgroundColor:
+                    'rgba(255, 255, 255, 0.10)',
 
-                  <IrpjCsslCell
-                    value={
-                      row.irpjCssl
-                    }
-                    consolidated={
-                      consolidated
-                    }
-                    negative={
-                      negative ||
-                      taxNegative
-                    }
-                  />
+                  border:
+                    '1px solid rgba(255, 255, 255, 0.10)',
 
-                  <TaxCell
-                    value={
-                      consolidated
-                        ? row.impostos
-                            .total_tributos +
-                          safeNumber(
-                            row.irpjCssl,
-                          )
-                        : row.impostos
-                            .total_tributos
-                    }
-                    color={
-                      taxColors
-                        .tributos
-                    }
-                    consolidated={
-                      consolidated
-                    }
-                    negative={
-                      negative ||
-                      taxNegative
-                    }
-                  />
+                  '& svg': {
+                    fontSize: 24,
+                  },
+                }}
+              >
+                <PaidOutlinedIcon />
+              </Box>
+            </Box>
 
-                  <TaxCell
-                    value={
-                      row.comissao
-                    }
-                    color={
-                      taxColors
-                        .comissao
-                    }
-                    consolidated={
-                      consolidated
-                    }
-                    negative={
-                      negative ||
-                      taxNegative
-                    }
-                  />
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Card>
+            <Box
+              sx={{
+                position: 'relative',
+                zIndex: 1,
+
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 1,
+
+                mt: 1.5,
+              }}
+            >
+              <Chip
+                label="CUSTO A ENTREGAR"
+                size="small"
+                sx={{
+                  height: 23,
+
+                  color: '#ffffff',
+
+                  backgroundColor:
+                    'rgba(255, 255, 255, 0.10)',
+
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                }}
+              />
+
+              <Typography
+                variant="caption"
+                sx={{
+                  color:
+                    'rgba(255, 255, 255, 0.62)',
+
+                  fontSize: '0.67rem',
+                  fontWeight: 600,
+                }}
+              >
+                Custo total menos o custo já entregue
+              </Typography>
+            </Box>
+          </Box>
+
+          <CostBreakdownMetric
+            title="Total custo"
+            operations={custoOperacoes}
+            bonus={custoBonificados}
+            total={totalCusto}
+            icon={<PriceCheckOutlinedIcon />}
+            color="#FF746D"
+            backgroundColor="rgba(255, 116, 109, 0.07)"
+          />
+
+          <CostBreakdownMetric
+            title="Total custo entregue"
+            operations={custoEntregueOperacoes}
+            bonus={custoBonificados}
+            total={totalCustoEntregue}
+            icon={<Inventory2OutlinedIcon />}
+            color="#4EAAEF"
+            backgroundColor="rgba(78, 170, 239, 0.07)"
+          />
+
+          <ChargesMetric
+            taxes={totalImpostos}
+            commission={totalComissao}
+          />
+        </Box>
+      </Card>
+    </Box>
   );
 }

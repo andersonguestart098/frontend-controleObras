@@ -95,6 +95,16 @@ const BUBBLE_TRAIL = [
   { size: 14, bottom: 137, right: -112 },
 ];
 
+function safeNumber(
+  value: number | null | undefined,
+): number {
+  const parsedValue = Number(value);
+
+  return Number.isFinite(parsedValue)
+    ? parsedValue
+    : 0;
+}
+
 /*
  * Balão flutuante com o dado de bonificações.
  *
@@ -1170,50 +1180,101 @@ export function SummarySection({
   /*
    * REMESSAS
    *
-   * A Remessa futura continua representando
-   * o faturamento principal.
+   * Remessa futura e Remessa transporte são
+   * consultas distintas, as duas por cabeçalho:
    *
-   * Valor entregue, custo entregue e tributos
-   * vêm exclusivamente de remessa_transporte,
-   * alimentada pelas notas TOP 1157.
+   * - remessas.sql (TOP 1009):
+   *   faturamento e custo próprio da nota-mãe.
+   *
+   * - remessas_transporte.sql (TOP 1157):
+   *   valor, impostos e custo das notas filhas,
+   *   ou seja, o que já foi entregue.
    */
 
   const valorRemessaFutura =
-    kpis.remessa_futura.total_faturamento;
+    safeNumber(
+      kpis.remessa_futura
+        ?.total_faturamento,
+    );
 
   const valorRemessaTransporte =
-    kpis.remessa_transporte?.valor_nota ?? 0;
+    safeNumber(
+      kpis.remessa_transporte
+        ?.valor_nota ??
+      kpis.remessa_futura
+        ?.total_entregue,
+    );
 
   const saldoRemessa =
-    valorRemessaFutura -
-    valorRemessaTransporte;
+    kpis.remessa_futura?.saldo == null
+      ? valorRemessaFutura -
+        valorRemessaTransporte
+      : safeNumber(
+          kpis.remessa_futura.saldo,
+        );
+
+  /*
+   * Custo próprio da nota-mãe, calculado no
+   * cabeçalho da própria remessas.sql.
+   */
 
   const custoRemessa =
-    kpis.remessa_futura.custo_total;
+    safeNumber(
+      kpis.remessa_futura
+        ?.custo_total,
+    );
+
+  /*
+   * Custo já baixado pelas notas filhas.
+   *
+   * O backend entrega isso pronto em
+   * remessa_futura.custo_entregue; a Remessa
+   * transporte fica de reserva.
+   */
 
   const custoRemessaEntregue =
-    kpis.remessa_transporte
-      ?.custo_medio_sem_icms_total ??
-    kpis.remessa_transporte?.custo_total ??
-    0;
+    kpis.remessa_futura
+      ?.custo_entregue == null
+      ? safeNumber(
+          kpis.remessa_transporte
+            ?.custo_medio_sem_icms_total ??
+          kpis.remessa_transporte
+            ?.custo_total,
+        )
+      : safeNumber(
+          kpis.remessa_futura
+            .custo_entregue,
+        );
 
   const saldoCustoRemessa =
-    custoRemessa -
-    custoRemessaEntregue;
+    kpis.remessa_futura
+      ?.saldo_custo == null
+      ? custoRemessa -
+        custoRemessaEntregue
+      : safeNumber(
+          kpis.remessa_futura
+            .saldo_custo,
+        );
 
   /*
    * CUSTOS POR ORIGEM
    */
 
   const custoVendas =
-    kpis.vendas.custo_total;
+    safeNumber(
+      kpis.vendas?.custo_total,
+    );
 
   const custoDevolucoes =
-    kpis.vendas.custo_devolucoes;
+    safeNumber(
+      kpis.vendas?.custo_devolucoes,
+    );
 
   const custoDevolucoesInternoObras =
-    kpis.devolucoes_interno_obras
-      ?.custo_total ?? 0;
+    safeNumber(
+      kpis.devolucoes_interno_obras
+        ?.custo_total,
+    );
 
   const custoTotalDevolucoes =
     custoDevolucoes +
@@ -1228,25 +1289,32 @@ export function SummarySection({
    */
 
   const custoInternoObrasBruto =
-    kpis.interno_obras.custo_bruto ??
-    (
-      kpis.interno_obras.custo_total +
-      custoDevolucoesInternoObras
+    safeNumber(
+      kpis.interno_obras?.custo_bruto ??
+      safeNumber(
+        kpis.interno_obras?.custo_total,
+      ) + custoDevolucoesInternoObras,
     );
 
   const custoInternoObras =
-    kpis.interno_obras.custo_total;
+    safeNumber(
+      kpis.interno_obras?.custo_total,
+    );
 
   /*
    * DEVOLUÇÕES
    */
 
   const totalDevolucoes =
-    kpis.vendas.total_devolucoes;
+    safeNumber(
+      kpis.vendas?.total_devolucoes,
+    );
 
   const totalDevolucoesInternoObras =
-    kpis.devolucoes_interno_obras
-      ?.total ?? 0;
+    safeNumber(
+      kpis.devolucoes_interno_obras
+        ?.total,
+    );
 
   const totalGeralDevolucoes =
     totalDevolucoes +
@@ -1260,24 +1328,28 @@ export function SummarySection({
    */
 
   const totalBonificados =
-    kpis.bonificados?.valor_nota ?? 0;
+    safeNumber(
+      kpis.bonificados?.valor_nota,
+    );
 
   const custoBonificados =
-    kpis.bonificados
-      ?.custo_medio_sem_icms_total ?? 0;
+    safeNumber(
+      kpis.bonificados
+        ?.custo_medio_sem_icms_total,
+    );
 
   /*
    * CUSTO DAS OPERAÇÕES:
    *
-   * Custo da remessa futura
+   * Custo próprio da remessa futura
    * + custo das vendas normais
    * + custo bruto do Interno Obras
    * - devoluções normais
    * - devoluções de Interno Obras
    *
    * O custo entregue da Remessa transporte não
-   * entra aqui porque já faz parte do custo total
-   * da Remessa futura.
+   * entra aqui: ele apenas baixa o custo que já
+   * está dentro da Remessa futura.
    */
 
   const custoOperacoes =
@@ -1290,6 +1362,9 @@ export function SummarySection({
    * TOTAL DE CUSTO:
    *
    * Operações + bonificados.
+   *
+   * Fecha com a coluna "Valor custo" da linha
+   * Consolidado líquido da tabela de tributos.
    */
 
   const totalCusto =
@@ -1299,8 +1374,9 @@ export function SummarySection({
   /*
    * CUSTO ENTREGUE DAS OPERAÇÕES:
    *
-   * A parcela de remessa entregue vem da consulta
-   * remessas_transporte, sem usar itens_remessas.
+   * Mesma conta, trocando o custo próprio da
+   * remessa pelo custo efetivamente entregue
+   * pelas notas TOP 1157.
    */
 
   const custoEntregueOperacoes =
@@ -1317,6 +1393,10 @@ export function SummarySection({
    * SALDO DE CUSTOS:
    *
    * Total de custo menos o custo já entregue.
+   *
+   * Como só a remessa tem saldo, este número
+   * acaba sendo o próprio saldo de custo da
+   * Remessa futura.
    */
 
   const saldoCustos =
@@ -1326,20 +1406,22 @@ export function SummarySection({
   /*
    * ENCARGOS CONSOLIDADOS
    *
-   * O consolidado do backend contém os tributos
-   * da Remessa futura. A Remessa transporte abate
-   * os tributos reais das notas TOP 1157.
+   * O consolidado do backend já contém os
+   * tributos da Remessa futura.
+   *
+   * A Remessa transporte NÃO abate nada:
+   * os impostos das notas filhas são os mesmos
+   * da operação já contada na Remessa futura,
+   * então subtrair dobrava o efeito.
    *
    * A bonificação soma seu imposto real.
    */
 
-  const impostosRemessaTransporte =
-    kpis.remessa_transporte
-      ?.valor_impostos ?? 0;
-
   const impostosBonificados =
-    kpis.bonificados
-      ?.valor_impostos ?? 0;
+    safeNumber(
+      kpis.bonificados
+        ?.valor_impostos,
+    );
 
   /*
    * IRPJ/CSLL = 3,35% sobre o valor de cada
@@ -1353,12 +1435,15 @@ export function SummarySection({
    */
 
   const valorInternoObrasBruto =
-    kpis.interno_obras.total_bruto ??
-    kpis.interno_obras.total;
+    safeNumber(
+      kpis.interno_obras?.total_bruto ??
+      kpis.interno_obras?.total,
+    );
 
   const irpjCsslVendas =
-    kpis.vendas.total_vendas *
-    IRPJ_CSSL_RATE;
+    safeNumber(
+      kpis.vendas?.total_vendas,
+    ) * IRPJ_CSSL_RATE;
 
   const irpjCsslDevolucoes =
     -(
@@ -1395,15 +1480,18 @@ export function SummarySection({
     irpjCsslRemessaFutura;
 
   const totalImpostos =
-    kpis.impostos.consolidado_liquido
-      .total_tributos +
-    impostosBonificados -
-    impostosRemessaTransporte +
+    safeNumber(
+      kpis.impostos?.consolidado_liquido
+        ?.total_tributos,
+    ) +
+    impostosBonificados +
     totalIrpjCssl;
 
   const totalComissao =
-    kpis.impostos.consolidado_liquido
-      .comissao;
+    safeNumber(
+      kpis.impostos?.consolidado_liquido
+        ?.comissao,
+    );
 
   return (
     <Box component="section">
@@ -1499,7 +1587,9 @@ export function SummarySection({
 
         <KpiCard
           title="Vendas normais"
-          value={kpis.vendas.total_vendas}
+          value={safeNumber(
+            kpis.vendas?.total_vendas,
+          )}
           subtitle={`Exceto Interno Obras e remessas • Custo: ${formatCurrency(
             custoVendas,
           )}`}
@@ -1511,7 +1601,9 @@ export function SummarySection({
 
         <KpiCard
           title="Interno Obras"
-          value={kpis.interno_obras.total}
+          value={safeNumber(
+            kpis.interno_obras?.total,
+          )}
           subtitle={`Custo: ${formatCurrency(
             custoInternoObras,
           )}`}
