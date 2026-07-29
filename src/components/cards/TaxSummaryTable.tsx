@@ -2396,14 +2396,14 @@ export function TaxSummaryTable({
 
                   <TaxCell
                     value={
-                      consolidated
+                      row.irpjCssl === null
                         ? row.impostos
+                            .total_tributos
+                        : row.impostos
                             .total_tributos +
                           safeNumber(
                             row.irpjCssl,
                           )
-                        : row.impostos
-                            .total_tributos
                     }
                     color={
                       taxColors
