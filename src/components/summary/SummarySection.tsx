@@ -518,12 +518,74 @@ function ResultBreakdownCard({
           sx={{
             display: 'grid',
             gridTemplateColumns:
-              'repeat(2, minmax(0, 1fr))',
+              'repeat(3, minmax(0, 1fr))',
             gap: 1.5,
             mt: 1.05,
+
+            flex: 1,
+            alignContent: 'center',
           }}
         >
           <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                color: '#64748b',
+                fontSize: '0.61rem',
+                fontWeight: 900,
+                lineHeight: 1.15,
+                textTransform: 'uppercase',
+              }}
+            >
+              Vlr. custo op.
+            </Typography>
+
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.2,
+                color: '#64748b',
+                fontSize: {
+                  xs: '1.02rem',
+                  md: '1.2rem',
+                },
+                lineHeight: 1.15,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RollingCurrency
+                value={operationalCost}
+                startDelay={rollDelay}
+                delayStep={55}
+              />
+            </Typography>
+
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                mt: 0.2,
+                color: '#94a3b8',
+                fontSize: '0.6rem',
+                fontWeight: 750,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {OPERATIONAL_COST_PERCENTUAL}% do consolidado
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: 0,
+              pl: 0.9,
+              borderLeft:
+                '1px solid rgba(148, 163, 184, 0.20)',
+            }}
+          >
             <Typography
               variant="caption"
               sx={{
@@ -544,8 +606,8 @@ function ResultBreakdownCard({
                 mt: 0.2,
                 color: grossMarginColor,
                 fontSize: {
-                  xs: '1.18rem',
-                  md: '1.45rem',
+                  xs: '1.02rem',
+                  md: '1.2rem',
                 },
                 lineHeight: 1.15,
                 fontWeight: 900,
@@ -555,7 +617,7 @@ function ResultBreakdownCard({
             >
               <RollingCurrency
                 value={grossMargin}
-                startDelay={rollDelay}
+                startDelay={rollDelay + 80}
                 delayStep={55}
               />
             </Typography>
@@ -583,91 +645,44 @@ function ResultBreakdownCard({
               Resultado líquido
             </Typography>
 
-            <Box
+            <Typography
+              component="div"
               sx={{
-                display: 'flex',
-                alignItems: 'baseline',
-                flexWrap: 'wrap',
-                gap: 0.5,
+                mt: 0.2,
+                color: netResultColor,
+                fontSize: {
+                  xs: '1.02rem',
+                  md: '1.2rem',
+                },
+                lineHeight: 1.15,
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+                whiteSpace: 'nowrap',
               }}
             >
-              <Typography
-                component="div"
-                sx={{
-                  mt: 0.2,
-                  color: netResultColor,
-                  fontSize: {
-                    xs: '1.18rem',
-                    md: '1.45rem',
-                  },
-                  lineHeight: 1.15,
-                  fontWeight: 900,
-                  letterSpacing: '-0.025em',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <RollingCurrency
-                  value={netResult}
-                  startDelay={rollDelay + 80}
-                  delayStep={55}
-                />
-              </Typography>
+              <RollingCurrency
+                value={netResult}
+                startDelay={rollDelay + 160}
+                delayStep={55}
+              />
+            </Typography>
 
-              <Typography
-                component="div"
-                sx={{
-                  color: netResultColor,
-                  opacity: 0.72,
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                ({formatPercentRatio(
-                  netResultPercent,
-                )})
-              </Typography>
-            </Box>
+            <Typography
+              component="div"
+              sx={{
+                mt: 0.2,
+                color: netResultColor,
+                opacity: 0.72,
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              ({formatPercentRatio(
+                netResultPercent,
+              )})
+            </Typography>
           </Box>
-        </Box>
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 0.8,
-
-            mt: 'auto',
-            pt: 0.75,
-
-            borderTop:
-              '1px solid rgba(148, 163, 184, 0.14)',
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              color: '#94a3b8',
-              fontSize: '0.60rem',
-              fontWeight: 750,
-              lineHeight: 1.2,
-            }}
-          >
-            Operacional {OPERATIONAL_COST_PERCENTUAL}%
-          </Typography>
-
-          <Typography
-            variant="caption"
-            sx={{
-              color: '#64748b',
-              fontSize: '0.65rem',
-              fontWeight: 850,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {formatCurrency(operationalCost)}
-          </Typography>
         </Box>
       </CardContent>
     </Card>
@@ -2400,7 +2415,11 @@ export function SummarySection({
           },
         }}
       >
-        {/* REMESSAS — primeiro terço da linha */}
+        {/*
+         * RESULTADO — primeira informação que o
+         * usuário deve ver, ocupa o lugar onde
+         * ficava o card de remessas futuras.
+         */}
         <Box
           sx={{
             gridColumn: {
@@ -2411,18 +2430,19 @@ export function SummarySection({
             },
           }}
         >
-          <RemittanceBreakdownCard
-            invoicedValue={valorRemessaFutura}
-            deliveredValue={valorRemessaTransporte}
-            balanceValue={saldoRemessa}
-            invoicedCost={custoRemessa}
-            deliveredCost={custoRemessaEntregue}
-            balanceCost={saldoCustoRemessa}
+          <ResultBreakdownCard
+            grossMargin={margemBruta}
+            netResult={resultadoLiquido}
+            operationalCost={custoOperacional}
+            consolidatedValue={valorConsolidado}
+            totalCost={totalCusto}
+            totalTaxes={totalImpostos}
+            totalCommission={totalComissao}
             rollDelay={0}
           />
         </Box>
 
-        {/* OPERAÇÕES — mesmo tamanho do card de remessas */}
+        {/* OPERAÇÕES — mesmo tamanho do card de resultado */}
         <Box
           sx={{
             gridColumn: {
@@ -2458,10 +2478,7 @@ export function SummarySection({
           />
         </Box>
 
-        {/*
-         * RESULTADO — ocupa o espaço onde ficava o
-         * card de devoluções e usa todo o terço final.
-         */}
+        {/* REMESSAS — usa todo o terço final */}
         <Box
           sx={{
             gridColumn: {
@@ -2472,14 +2489,13 @@ export function SummarySection({
             },
           }}
         >
-          <ResultBreakdownCard
-            grossMargin={margemBruta}
-            netResult={resultadoLiquido}
-            operationalCost={custoOperacional}
-            consolidatedValue={valorConsolidado}
-            totalCost={totalCusto}
-            totalTaxes={totalImpostos}
-            totalCommission={totalComissao}
+          <RemittanceBreakdownCard
+            invoicedValue={valorRemessaFutura}
+            deliveredValue={valorRemessaTransporte}
+            balanceValue={saldoRemessa}
+            invoicedCost={custoRemessa}
+            deliveredCost={custoRemessaEntregue}
+            balanceCost={saldoCustoRemessa}
             rollDelay={420}
           />
         </Box>
