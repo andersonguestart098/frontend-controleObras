@@ -625,7 +625,7 @@ export function RemittanceControlTable({
             stickyHeader
             size="small"
             sx={{
-              minWidth: 1180,
+              minWidth: 900,
             }}
           >
             <TableHead>
@@ -662,20 +662,6 @@ export function RemittanceControlTable({
                   sx={tableHeaderCellSx}
                 >
                   ICMS
-                </TableCell>
-
-                <TableCell
-                  align="right"
-                  sx={tableHeaderCellSx}
-                >
-                  Gastos
-                </TableCell>
-
-                <TableCell
-                  align="right"
-                  sx={tableHeaderCellSx}
-                >
-                  Líquido
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -778,38 +764,13 @@ export function RemittanceControlTable({
                       remessa.vlricms ?? 0,
                     )}
                   </TableCell>
-
-                  <TableCell
-                    align="right"
-                    sx={{
-                      ...numericCellSx,
-                      color: '#FF746D',
-                    }}
-                  >
-                    {formatCurrency(
-                      remessa.vlr_gasto_total,
-                    )}
-                  </TableCell>
-
-                  <TableCell
-                    align="right"
-                    sx={{
-                      ...numericCellSx,
-                      color: '#15803d',
-                      fontWeight: 850,
-                    }}
-                  >
-                    {formatCurrency(
-                      remessa.vlr_liquido,
-                    )}
-                  </TableCell>
                 </TableRow>
               ))}
 
               {remessas.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={7}
                     sx={{
                       py: 5,
                       textAlign: 'center',

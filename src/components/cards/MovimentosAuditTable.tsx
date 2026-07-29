@@ -2120,6 +2120,8 @@ export function MovimentosAuditTable({
                 vlr_gasto_fixo: false,
                 vlr_irpj_cssl: false,
                 vlr_comissao: false,
+                vlr_gasto_total: false,
+                vlr_liquido: false,
               },
             },
           }}
