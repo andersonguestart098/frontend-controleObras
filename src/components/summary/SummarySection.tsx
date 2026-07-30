@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react';
 import { keyframes } from '@mui/material/styles';
 
-import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
-import PriceCheckOutlinedIcon from '@mui/icons-material/PriceCheckOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined';
+import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import {
   Box,
   Card,
@@ -20,6 +21,7 @@ import { RollingCurrency } from '@/components/common/RollingCurrency';
 import type {
   DashboardKpis,
   ImpostoGrupoKpis,
+  PagamentoTitulo,
 } from '@/types/dashboard';
 import {
   formatCurrency,
@@ -28,6 +30,18 @@ import {
 
 interface SummarySectionProps {
   kpis: DashboardKpis;
+  pagamentos?: PagamentoTitulo[];
+}
+
+interface SingleMetricProps {
+  title: string;
+  label: string;
+  value: number;
+  color: string;
+  caption: string;
+  icon: ReactNode;
+  iconColor: string;
+  backgroundColor: string;
 }
 
 interface TwoColumnMetricProps {
@@ -38,6 +52,25 @@ interface TwoColumnMetricProps {
   rightLabel: string;
   rightValue: number;
   rightColor: string;
+  caption: string;
+  icon: ReactNode;
+  iconColor: string;
+  backgroundColor: string;
+}
+
+interface ThreeColumnMetricItem {
+  label: string;
+  value: number;
+  color: string;
+}
+
+interface ThreeColumnMetricProps {
+  title: string;
+  items: [
+    ThreeColumnMetricItem,
+    ThreeColumnMetricItem,
+    ThreeColumnMetricItem,
+  ];
   caption: string;
   icon: ReactNode;
   iconColor: string;
@@ -784,6 +817,453 @@ const richTooltipSlotProps = {
   },
 } as const;
 
+const paymentsTooltipSlotProps = {
+  tooltip: {
+    sx: {
+      ...richTooltipSlotProps.tooltip.sx,
+      maxWidth: 'none',
+    },
+  },
+  arrow: richTooltipSlotProps.arrow,
+} as const;
+
+type PagamentoStatus =
+  | 'PAGO'
+  | 'VENCIDO'
+  | 'EM ABERTO';
+
+interface PaymentGroupConfig {
+  status: PagamentoStatus;
+  label: string;
+  color: string;
+  backgroundColor: string;
+}
+
+const paymentGroups: PaymentGroupConfig[] = [
+  {
+    status: 'VENCIDO',
+    label: 'Vencidos',
+    color: '#dc2626',
+    backgroundColor: 'rgba(220, 38, 38, 0.055)',
+  },
+  {
+    status: 'EM ABERTO',
+    label: 'Em aberto',
+    color: '#d97706',
+    backgroundColor: 'rgba(217, 119, 6, 0.055)',
+  },
+  {
+    status: 'PAGO',
+    label: 'Pagos',
+    color: '#16a34a',
+    backgroundColor: 'rgba(22, 163, 74, 0.055)',
+  },
+];
+
+function normalizePaymentStatus(
+  value: string | null | undefined,
+): PagamentoStatus | '' {
+  const status = String(value ?? '')
+    .trim()
+    .toUpperCase()
+    .replace('_', ' ');
+
+  if (
+    status === 'PAGO' ||
+    status === 'VENCIDO' ||
+    status === 'EM ABERTO'
+  ) {
+    return status;
+  }
+
+  return '';
+}
+
+function getPaymentValue(
+  titulo: PagamentoTitulo,
+): number {
+  const status = normalizePaymentStatus(
+    titulo.status_titulo,
+  );
+
+  if (status === 'PAGO') {
+    const valorBaixa = safeNumber(
+      titulo.valor_baixa,
+    );
+
+    return valorBaixa || safeNumber(
+      titulo.valor_titulo,
+    );
+  }
+
+  return safeNumber(titulo.saldo_aberto);
+}
+
+function PaymentsBreakdownTooltip({
+  pagamentos,
+}: {
+  pagamentos: PagamentoTitulo[];
+}) {
+  const grupos = paymentGroups.map((grupo) => {
+    const titulos = pagamentos.filter(
+      (titulo) =>
+        normalizePaymentStatus(
+          titulo.status_titulo,
+        ) === grupo.status,
+    );
+
+    const total = titulos.reduce(
+      (acumulado, titulo) =>
+        acumulado + getPaymentValue(titulo),
+      0,
+    );
+
+    return {
+      ...grupo,
+      titulos,
+      total,
+    };
+  });
+
+  const totalGeral = grupos.reduce(
+    (acumulado, grupo) =>
+      acumulado + grupo.total,
+    0,
+  );
+
+  return (
+    <Box
+      sx={{
+        width: 500,
+        maxWidth: 'calc(100vw - 48px)',
+        p: 0.5,
+      }}
+    >
+      <Typography
+        sx={{
+          color: '#94a3b8',
+          fontSize: '0.66rem',
+          fontWeight: 900,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Detalhamento dos pagamentos
+      </Typography>
+
+      <Box
+        sx={{
+          mt: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+        }}
+      >
+        <Typography
+          sx={{
+            color: '#334155',
+            fontSize: '0.76rem',
+            fontWeight: 800,
+          }}
+        >
+          Títulos vinculados à obra
+        </Typography>
+
+        <Chip
+          label={`${pagamentos.length} títulos`}
+          size="small"
+          sx={{
+            height: 21,
+            color: '#475569',
+            backgroundColor:
+              'rgba(148, 163, 184, 0.10)',
+            fontSize: '0.6rem',
+            fontWeight: 800,
+          }}
+        />
+      </Box>
+
+      <Box
+        sx={{
+          mt: 0.75,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.6,
+          pl: 1,
+          borderLeft:
+            '2px solid rgba(148, 163, 184, 0.20)',
+        }}
+      >
+        {grupos.map((grupo) => (
+          <Box
+            key={grupo.status}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.5,
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.65,
+                minWidth: 0,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 7,
+                  height: 7,
+                  flexShrink: 0,
+                  borderRadius: '50%',
+                  backgroundColor: grupo.color,
+                  boxShadow:
+                    `0 0 6px ${grupo.color}66`,
+                }}
+              />
+
+              <Typography
+                sx={{
+                  color: '#64748b',
+                  fontSize: '0.73rem',
+                  fontWeight: 700,
+                }}
+              >
+                {grupo.label} ({grupo.titulos.length})
+              </Typography>
+            </Box>
+
+            <Typography
+              sx={{
+                color: grupo.color,
+                fontSize: '0.78rem',
+                fontWeight: 850,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {formatCurrency(grupo.total)}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      <Box
+        sx={{
+          mt: 0.9,
+          pt: 0.8,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+          borderTop:
+            '1px solid rgba(148, 163, 184, 0.22)',
+        }}
+      >
+        <Typography
+          sx={{
+            color: '#0f172a',
+            fontSize: '0.74rem',
+            fontWeight: 900,
+          }}
+        >
+          Total dos títulos
+        </Typography>
+
+        <Typography
+          sx={{
+            color: '#0f172a',
+            fontSize: '0.84rem',
+            fontWeight: 900,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {formatCurrency(totalGeral)}
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          mt: 1,
+          pt: 0.8,
+          maxHeight: 330,
+          overflowY: 'auto',
+          pr: 0.5,
+          borderTop:
+            '1px solid rgba(148, 163, 184, 0.22)',
+          scrollbarWidth: 'thin',
+          scrollbarColor:
+            'rgba(100, 116, 139, 0.42) transparent',
+          '&::-webkit-scrollbar': {
+            width: 6,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            borderRadius: 99,
+            backgroundColor:
+              'rgba(100, 116, 139, 0.42)',
+          },
+        }}
+      >
+        {pagamentos.length === 0 ? (
+          <Typography
+            sx={{
+              py: 1.2,
+              color: '#94a3b8',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              textAlign: 'center',
+            }}
+          >
+            Nenhum título encontrado para os filtros.
+          </Typography>
+        ) : (
+          grupos.map((grupo) => (
+            <Box
+              key={`detalhe-${grupo.status}`}
+              sx={{
+                '& + &': {
+                  mt: 1.1,
+                  pt: 1,
+                  borderTop:
+                    '1px solid rgba(148, 163, 184, 0.16)',
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1.5,
+                  mb: 0.65,
+                }}
+              >
+                <Typography
+                  sx={{
+                    color: grupo.color,
+                    fontSize: '0.68rem',
+                    fontWeight: 900,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {grupo.label}
+                </Typography>
+
+                <Typography
+                  sx={{
+                    color: grupo.color,
+                    fontSize: '0.7rem',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {formatCurrency(grupo.total)}
+                </Typography>
+              </Box>
+
+              {grupo.titulos.length === 0 ? (
+                <Typography
+                  sx={{
+                    py: 0.65,
+                    color: '#94a3b8',
+                    fontSize: '0.67rem',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Nenhum título nesta situação.
+                </Typography>
+              ) : (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.55,
+                  }}
+                >
+                  {grupo.titulos.map(
+                    (titulo, index) => (
+                      <Box
+                        key={
+                          titulo.nufin ??
+                          `${titulo.nunota}-${titulo.parcela}-${index}`
+                        }
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns:
+                            'minmax(0, 1fr) auto',
+                          alignItems: 'center',
+                          gap: 1.5,
+                          px: 1,
+                          py: 0.8,
+                          borderRadius: 1.5,
+                          backgroundColor:
+                            grupo.backgroundColor,
+                          border:
+                            `1px solid ${grupo.color}18`,
+                        }}
+                      >
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            noWrap
+                            title={
+                              titulo.parceiro ??
+                              undefined
+                            }
+                            sx={{
+                              color: '#334155',
+                              fontSize: '0.7rem',
+                              fontWeight: 850,
+                            }}
+                          >
+                            {titulo.parceiro ||
+                              'Parceiro não informado'}
+                          </Typography>
+
+                          <Typography
+                            noWrap
+                            sx={{
+                              mt: 0.15,
+                              color: '#94a3b8',
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                            }}
+                          >
+                            NF {titulo.nunota ?? '—'}
+                            {' · '}Parcela{' '}
+                            {titulo.parcela ?? '—'}
+                            {' · '}NUFIN{' '}
+                            {titulo.nufin ?? '—'}
+                          </Typography>
+                        </Box>
+
+                        <Typography
+                          sx={{
+                            color: grupo.color,
+                            fontSize: '0.73rem',
+                            fontWeight: 900,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {formatCurrency(
+                            getPaymentValue(titulo),
+                          )}
+                        </Typography>
+                      </Box>
+                    ),
+                  )}
+                </Box>
+              )}
+            </Box>
+          ))
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 function ResultBreakdownTooltip({
   consolidatedValue,
   totalCost,
@@ -1302,6 +1782,139 @@ return (
 );
 }
 
+function SingleMetric({
+  title,
+  label,
+  value,
+  color,
+  caption,
+  icon,
+  iconColor,
+  backgroundColor,
+}: SingleMetricProps) {
+  return (
+    <Box
+      sx={{
+        minWidth: 0,
+        height: '100%',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 1.5,
+        px: { xs: 2, md: 2.25 },
+        py: { xs: 1.8, md: 2 },
+        borderRadius: 3,
+        backgroundColor,
+        border: '1px solid rgba(148, 163, 184, 0.1)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: -20,
+          right: -20,
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${iconColor}10, transparent)`,
+          pointerEvents: 'none',
+        },
+        '&:hover': {
+          transform: 'translateY(-3px)',
+          boxShadow: '0 12px 24px rgba(0, 0, 0, 0.05)',
+          '& .metric-icon': {
+            transform: 'scale(1.1)',
+          },
+        },
+      }}
+    >
+      <Box
+        className="metric-icon"
+        sx={{
+          width: 42,
+          height: 42,
+          display: 'grid',
+          placeItems: 'center',
+          flexShrink: 0,
+          borderRadius: 2.5,
+          color: iconColor,
+          backgroundColor: '#ffffff',
+          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
+          border: `1px solid ${iconColor}20`,
+          transition: 'all 0.3s ease',
+          '& svg': {
+            fontSize: 22,
+          },
+        }}
+      >
+        {icon}
+      </Box>
+
+      <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+            minHeight: '2.2em',
+            color: '#64748b',
+            fontSize: '0.73rem',
+            fontWeight: 800,
+            lineHeight: 1.1,
+          }}
+        >
+          {title}
+        </Typography>
+
+        <Box sx={{ mt: 0.35, minHeight: 40 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              color,
+              fontSize: '0.63rem',
+              fontWeight: 900,
+              letterSpacing: '0.03em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {label}
+          </Typography>
+
+          <Typography
+            component="div"
+            sx={{
+              mt: 0.2,
+              color,
+              fontSize: { xs: '1.1rem', md: '1.2rem' },
+              lineHeight: 1.2,
+              fontWeight: 900,
+              letterSpacing: '-0.025em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <RollingCurrency value={value} delayStep={60} />
+          </Typography>
+        </Box>
+
+        <Chip
+          label={caption}
+          size="small"
+          sx={{
+            mt: 2,
+            alignSelf: 'flex-start',
+            height: 22,
+            fontSize: '0.6rem',
+            fontWeight: 600,
+            backgroundColor: 'rgba(148, 163, 184, 0.06)',
+            color: '#64748b',
+            border: '1px solid rgba(148, 163, 184, 0.15)',
+          }}
+        />
+      </Box>
+    </Box>
+  );
+}
+
 function TwoColumnMetric({
   title,
   leftLabel,
@@ -1394,6 +2007,7 @@ function TwoColumnMetric({
             gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
             gap: 1.25,
             mt: 0.35,
+            minHeight: 40,
           }}
         >
           <Box sx={{ minWidth: 0 }}>
@@ -1469,7 +2083,160 @@ function TwoColumnMetric({
           label={caption}
           size="small"
           sx={{
-            mt: 'auto',
+            mt: 2,
+            alignSelf: 'flex-start',
+            height: 22,
+            fontSize: '0.6rem',
+            fontWeight: 600,
+            backgroundColor: 'rgba(148, 163, 184, 0.06)',
+            color: '#64748b',
+            border: '1px solid rgba(148, 163, 184, 0.15)',
+          }}
+        />
+      </Box>
+    </Box>
+  );
+}
+
+function ThreeColumnMetric({
+  title,
+  items,
+  caption,
+  icon,
+  iconColor,
+  backgroundColor,
+}: ThreeColumnMetricProps) {
+  return (
+    <Box
+      sx={{
+        minWidth: 0,
+        height: '100%',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 1.5,
+        px: { xs: 2, md: 2.25 },
+        py: { xs: 1.8, md: 2 },
+        borderRadius: 3,
+        backgroundColor,
+        border: '1px solid rgba(148, 163, 184, 0.1)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: -20,
+          right: -20,
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${iconColor}10, transparent)`,
+          pointerEvents: 'none',
+        },
+        '&:hover': {
+          transform: 'translateY(-3px)',
+          boxShadow: '0 12px 24px rgba(0, 0, 0, 0.05)',
+          '& .metric-icon': {
+            transform: 'scale(1.1)',
+          },
+        },
+      }}
+    >
+      <Box
+        className="metric-icon"
+        sx={{
+          width: 42,
+          height: 42,
+          display: 'grid',
+          placeItems: 'center',
+          flexShrink: 0,
+          borderRadius: 2.5,
+          color: iconColor,
+          backgroundColor: '#ffffff',
+          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
+          border: `1px solid ${iconColor}20`,
+          transition: 'all 0.3s ease',
+          '& svg': {
+            fontSize: 22,
+          },
+        }}
+      >
+        {icon}
+      </Box>
+
+      <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+            minHeight: '2.2em',
+            color: '#64748b',
+            fontSize: '0.73rem',
+            fontWeight: 800,
+            lineHeight: 1.1,
+          }}
+        >
+          {title}
+        </Typography>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 1.25,
+            mt: 0.35,
+            minHeight: 40,
+          }}
+        >
+          {items.map((item, index) => (
+            <Box
+              key={item.label}
+              sx={{
+                minWidth: 0,
+                pl: index === 0 ? 0 : 1.25,
+                borderLeft:
+                  index === 0
+                    ? 'none'
+                    : '1px solid rgba(148, 163, 184, 0.22)',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  color: item.color,
+                  fontSize: '0.63rem',
+                  fontWeight: 900,
+                  letterSpacing: '0.03em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {item.label}
+              </Typography>
+
+              <Typography
+                component="div"
+                sx={{
+                  mt: 0.2,
+                  color: item.color,
+                  fontSize: { xs: '0.88rem', md: '0.96rem' },
+                  lineHeight: 1.2,
+                  fontWeight: 900,
+                  letterSpacing: '-0.025em',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <RollingCurrency value={item.value} delayStep={60} />
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        <Chip
+          label={caption}
+          size="small"
+          sx={{
+            mt: 2,
             alignSelf: 'flex-start',
             height: 22,
             fontSize: '0.6rem',
@@ -1486,6 +2253,7 @@ function TwoColumnMetric({
 
 export function SummarySection({
   kpis,
+  pagamentos = [],
 }: SummarySectionProps) {
   /*
    * REMESSAS
@@ -1507,13 +2275,26 @@ export function SummarySection({
   const custoRemessa =
     safeNumber(kpis.remessa_futura?.custo_total);
 
-  const custoRemessaEntregue =
-    safeNumber(kpis.remessa_futura?.custo_entregue);
+  /*
+   * MÃO DE OBRA, COMPRAS E PAGAMENTOS
+   */
+  const maoDeObraValor =
+    safeNumber(kpis.mao_de_obra?.valor_nota);
 
-  const saldoCustoRemessa =
-    kpis.remessa_futura?.saldo_custo == null
-      ? custoRemessa - custoRemessaEntregue
-      : safeNumber(kpis.remessa_futura.saldo_custo);
+  const comprasValor =
+    safeNumber(kpis.compras?.valor_nota);
+
+  const pagamentosPago =
+    safeNumber(kpis.pagamentos?.valor_pago);
+
+  const pagamentosEmAberto =
+    safeNumber(kpis.pagamentos?.valor_em_aberto);
+
+  const pagamentosVencido =
+    safeNumber(kpis.pagamentos?.valor_vencido);
+
+  const pagamentosTitulos =
+    safeNumber(kpis.pagamentos?.quantidade_titulos);
 
   /*
    * CUSTOS POR ORIGEM
@@ -1789,13 +2570,13 @@ export function SummarySection({
             gridTemplateColumns: {
               xs: '1fr',
               sm: 'repeat(2, minmax(0, 1fr))',
-              xl: '1.35fr repeat(2, minmax(0, 1fr))',
+              xl: '1.4fr 1.3fr 0.75fr 0.85fr',
             },
             gap: 1.5,
             p: { xs: 1.5, md: 1.75 },
           }}
         >
-          {/* FATURADO REMESSA */}
+          {/* MÃO DE OBRA */}
           <Box
             sx={{
               position: 'relative',
@@ -1803,9 +2584,9 @@ export function SummarySection({
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              minHeight: 132,
-              px: { xs: 2, md: 2.4 },
-              py: 2,
+              minHeight: 156,
+              px: { xs: 2.4, md: 2.8 },
+              py: 2.5,
               borderRadius: 3,
               color: '#ffffff',
               background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
@@ -1857,7 +2638,7 @@ export function SummarySection({
                     textTransform: 'uppercase',
                   }}
                 >
-                  Faturado remessa
+                  Mão de obra
                 </Typography>
 
                 <Typography
@@ -1872,7 +2653,7 @@ export function SummarySection({
                   }}
                 >
                   <RollingCurrency
-                    value={valorRemessaFutura}
+                    value={maoDeObraValor}
                     duration={1300}
                     delayStep={85}
                   />
@@ -1899,7 +2680,7 @@ export function SummarySection({
                   },
                 }}
               >
-                <PaidOutlinedIcon />
+                <BuildOutlinedIcon />
               </Box>
             </Box>
 
@@ -1915,7 +2696,7 @@ export function SummarySection({
               }}
             >
               <Chip
-                label="CUSTO REMESSA"
+                label="MÃO DE OBRA PAGA"
                 size="small"
                 sx={{
                   height: 24,
@@ -1928,47 +2709,94 @@ export function SummarySection({
                   letterSpacing: '0.04em',
                 }}
               />
-
-              <Typography
-                variant="caption"
-                sx={{
-                  color: 'rgba(255, 255, 255, 0.62)',
-                  fontSize: '0.67rem',
-                  fontWeight: 600,
-                }}
-              >
-                Custo: {formatCurrency(custoRemessa)}
-              </Typography>
             </Box>
           </Box>
 
-          <TwoColumnMetric
-            title="Entregue"
-            leftLabel="Valor"
-            leftValue={valorRemessaTransporte}
-            leftColor="#3b82f6"
-            rightLabel="Custo"
-            rightValue={custoRemessaEntregue}
-            rightColor="#2563eb"
-            caption="Faturamento já entregue"
+          {/* REMESSA: FATURADO, ENTREGUE E SALDO */}
+          <ThreeColumnMetric
+            title="Remessa"
+            items={[
+              {
+                label: 'Faturado',
+                value: valorRemessaFutura,
+                color: '#0f172a',
+              },
+              {
+                label: 'Entregue',
+                value: valorRemessaTransporte,
+                color: '#3b82f6',
+              },
+              {
+                label: 'Saldo',
+                value: saldoRemessa,
+                color: '#d97706',
+              },
+            ]}
+            caption="Faturamento, entrega e saldo da remessa"
             icon={<Inventory2OutlinedIcon />}
             iconColor="#3b82f6"
             backgroundColor="rgba(59, 130, 246, 0.04)"
           />
 
-          <TwoColumnMetric
-            title="Saldo"
-            leftLabel="Valor"
-            leftValue={saldoRemessa}
-            leftColor="#f59e0b"
-            rightLabel="Custo"
-            rightValue={saldoCustoRemessa}
-            rightColor="#d97706"
-            caption="Falta faturar/entregar"
-            icon={<PriceCheckOutlinedIcon />}
-            iconColor="#f59e0b"
-            backgroundColor="rgba(245, 158, 11, 0.04)"
+          {/* COMPRAS */}
+          <SingleMetric
+            title="Compras"
+            label="Valor nota"
+            value={comprasValor}
+            color="#0d9488"
+            caption="Notas de compra do projeto"
+            icon={<ShoppingCartOutlinedIcon />}
+            iconColor="#0d9488"
+            backgroundColor="rgba(13, 148, 136, 0.04)"
           />
+
+          {/* PAGAMENTOS */}
+          <Tooltip
+            title={
+              <PaymentsBreakdownTooltip
+                pagamentos={pagamentos}
+              />
+            }
+            arrow
+            placement="top"
+            enterDelay={250}
+            leaveDelay={250}
+            disableInteractive={false}
+            slotProps={paymentsTooltipSlotProps}
+          >
+            <Box
+              sx={{
+                minWidth: 0,
+                height: '100%',
+                cursor: 'help',
+              }}
+            >
+              <TwoColumnMetric
+                title="Pagamentos"
+                leftLabel="Pago"
+                leftValue={pagamentosPago}
+                leftColor="#16a34a"
+                rightLabel="Vencido"
+                rightValue={pagamentosVencido}
+                rightColor={
+                  pagamentosVencido > 0
+                    ? '#dc2626'
+                    : '#94a3b8'
+                }
+                caption={
+                  `${pagamentosTitulos} títulos · ` +
+                  `Em aberto: ${formatCurrency(
+                    pagamentosEmAberto,
+                  )}`
+                }
+                icon={
+                  <AccountBalanceWalletOutlinedIcon />
+                }
+                iconColor="#16a34a"
+                backgroundColor="rgba(22, 163, 74, 0.04)"
+              />
+            </Box>
+          </Tooltip>
         </Box>
       </Card>
     </Box>

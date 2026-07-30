@@ -80,6 +80,88 @@ export interface NotasResumoKpis {
   custo_total?: number;
 }
 
+export interface MaoDeObraKpis {
+  quantidade_notas: number;
+
+  valor_nota: number;
+
+  valor_icms: number;
+  valor_pis: number;
+  valor_cofins: number;
+  valor_impostos: number;
+
+  perc_gasto_fixo: number;
+  perc_irpj_cssl: number;
+  perc_comissao: number;
+
+  valor_gasto_fixo: number;
+  valor_irpj_cssl: number;
+  valor_comissao: number;
+
+  valor_gasto_total: number;
+  valor_liquido: number;
+}
+
+export interface PagamentosKpis {
+  quantidade_titulos: number;
+  quantidade_pagos: number;
+  quantidade_vencidos: number;
+  quantidade_em_aberto: number;
+
+  valor_titulos: number;
+  valor_pago: number;
+  saldo_aberto: number;
+  valor_vencido: number;
+  valor_em_aberto: number;
+}
+
+export type PagamentoStatus =
+  | 'PAGO'
+  | 'VENCIDO'
+  | 'EM ABERTO'
+  | string;
+
+export interface PagamentoTitulo {
+  nunota: number | null;
+  nufin: number | null;
+  parcela: string | number | null;
+
+  dtneg: string | null;
+  dtvenc: string | null;
+  dhbaixa: string | null;
+
+  codproj: number | null;
+  projeto: string | null;
+
+  codtipoper: number | null;
+  descroper: string | null;
+
+  codtipvenda: number | null;
+  tipo_negociacao: string | null;
+
+  parceiro: string | null;
+  cgc_cpf: string | null;
+
+  valor_titulo: number;
+  valor_baixa: number;
+  saldo_aberto: number;
+
+  status_titulo: PagamentoStatus;
+
+  historico: string | null;
+  vlrlanc: number | null;
+  dtlanc: string | null;
+  recdesp: number | null;
+  origmov: string | null;
+  nubco: number | null;
+}
+
+export interface PagamentosResponse {
+  filters: DashboardFilters;
+  count: number;
+  pagamentos: PagamentoTitulo[];
+}
+
 export interface RemessaFuturaKpis {
   total_faturamento: number;
   total_entregue: number;
@@ -127,6 +209,9 @@ export interface DashboardKpis {
 
   compras?: NotasResumoKpis;
   bonificados?: NotasResumoKpis;
+
+  mao_de_obra?: MaoDeObraKpis;
+  pagamentos?: PagamentosKpis;
 
   remessa_futura: RemessaFuturaKpis;
 

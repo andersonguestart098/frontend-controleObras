@@ -24,7 +24,9 @@ import { MovimentosAuditTable } from '@/components/cards/MovimentosAuditTable';
 import { useDashboardKpis } from '@/hooks/useDashboardKpis';
 import { useRemessasControl } from '@/hooks/useRemessasControl';
 import { useMovimentos } from '../hooks/useMovimentos';
+import { usePagamentos } from '@/hooks/usePagamentos';
 import type { DashboardFilters } from '@/types/dashboard';
+
 
 const initialFilters: DashboardFilters = {
   codproj: 10030000,
@@ -359,10 +361,13 @@ export function DashboardPage() {
   const movimentos =
     useMovimentos(filters);
 
+  const pagamentos = usePagamentos(filters);
+
   const isUpdating =
     dashboard.isFetching ||
     remessasControl.isFetching ||
-    movimentos.isFetching;
+    movimentos.isFetching ||
+    pagamentos.isFetching;
 
   const isDashboardLoading =
     dashboard.isPending ||
@@ -371,6 +376,8 @@ export function DashboardPage() {
   const projectName =
     dashboard.data?.projeto.nome_projeto?.trim() ||
     `Projeto ${filters.codproj}`;
+
+    
 
   function handleApplyFilters(
     nextFilters: DashboardFilters,
@@ -392,6 +399,7 @@ export function DashboardPage() {
       dashboard.refetch(),
       remessasControl.refetch(),
       movimentos.refetch(),
+      pagamentos.refetch(),
     ]);
   }
 
@@ -737,8 +745,11 @@ export function DashboardPage() {
                   <SummarySectionSkeleton />
                 ) : (
                   <SummarySection
-                    kpis={dashboard.data.kpis}
-                  />
+                  kpis={dashboard.data.kpis}
+                  pagamentos={
+                    pagamentos.data?.pagamentos ?? []
+                  }
+                />
                 )}
               </Box>
 
