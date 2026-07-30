@@ -44,20 +44,6 @@ interface SingleMetricProps {
   backgroundColor: string;
 }
 
-interface TwoColumnMetricProps {
-  title: string;
-  leftLabel: string;
-  leftValue: number;
-  leftColor: string;
-  rightLabel: string;
-  rightValue: number;
-  rightColor: string;
-  caption: string;
-  icon: ReactNode;
-  iconColor: string;
-  backgroundColor: string;
-}
-
 interface ThreeColumnMetricItem {
   label: string;
   value: number;
@@ -1915,189 +1901,6 @@ function SingleMetric({
   );
 }
 
-function TwoColumnMetric({
-  title,
-  leftLabel,
-  leftValue,
-  leftColor,
-  rightLabel,
-  rightValue,
-  rightColor,
-  caption,
-  icon,
-  iconColor,
-  backgroundColor,
-}: TwoColumnMetricProps) {
-  return (
-    <Box
-      sx={{
-        minWidth: 0,
-        height: '100%',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 1.5,
-        px: { xs: 2, md: 2.25 },
-        py: { xs: 1.8, md: 2 },
-        borderRadius: 3,
-        backgroundColor,
-        border: '1px solid rgba(148, 163, 184, 0.1)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        position: 'relative',
-        overflow: 'hidden',
-        '&::after': {
-          content: '""',
-          position: 'absolute',
-          top: -20,
-          right: -20,
-          width: 80,
-          height: 80,
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${iconColor}10, transparent)`,
-          pointerEvents: 'none',
-        },
-        '&:hover': {
-          transform: 'translateY(-3px)',
-          boxShadow: '0 12px 24px rgba(0, 0, 0, 0.05)',
-          '& .metric-icon': {
-            transform: 'scale(1.1)',
-          },
-        },
-      }}
-    >
-      <Box
-        className="metric-icon"
-        sx={{
-          width: 42,
-          height: 42,
-          display: 'grid',
-          placeItems: 'center',
-          flexShrink: 0,
-          borderRadius: 2.5,
-          color: iconColor,
-          backgroundColor: '#ffffff',
-          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
-          border: `1px solid ${iconColor}20`,
-          transition: 'all 0.3s ease',
-          '& svg': {
-            fontSize: 22,
-          },
-        }}
-      >
-        {icon}
-      </Box>
-
-      <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            minHeight: '2.2em',
-            color: '#64748b',
-            fontSize: '0.73rem',
-            fontWeight: 800,
-            lineHeight: 1.1,
-          }}
-        >
-          {title}
-        </Typography>
-
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: 1.25,
-            mt: 0.35,
-            minHeight: 40,
-          }}
-        >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-                color: leftColor,
-                fontSize: '0.63rem',
-                fontWeight: 900,
-                letterSpacing: '0.03em',
-                textTransform: 'uppercase',
-              }}
-            >
-              {leftLabel}
-            </Typography>
-
-            <Typography
-              component="div"
-              sx={{
-                mt: 0.2,
-                color: leftColor,
-                fontSize: { xs: '0.98rem', md: '1.06rem' },
-                lineHeight: 1.2,
-                fontWeight: 900,
-                letterSpacing: '-0.025em',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <RollingCurrency value={leftValue} delayStep={60} />
-            </Typography>
-          </Box>
-
-          <Box
-            sx={{
-              minWidth: 0,
-              pl: 1.25,
-              borderLeft: '1px solid rgba(148, 163, 184, 0.22)',
-            }}
-          >
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-                color: rightColor,
-                fontSize: '0.63rem',
-                fontWeight: 900,
-                letterSpacing: '0.03em',
-                textTransform: 'uppercase',
-              }}
-            >
-              {rightLabel}
-            </Typography>
-
-            <Typography
-              component="div"
-              sx={{
-                mt: 0.2,
-                color: rightColor,
-                fontSize: { xs: '0.98rem', md: '1.06rem' },
-                lineHeight: 1.2,
-                fontWeight: 900,
-                letterSpacing: '-0.025em',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <RollingCurrency value={rightValue} delayStep={60} />
-            </Typography>
-          </Box>
-        </Box>
-
-        <Chip
-          label={caption}
-          size="small"
-          sx={{
-            mt: 2,
-            alignSelf: 'flex-start',
-            height: 22,
-            fontSize: '0.6rem',
-            fontWeight: 600,
-            backgroundColor: 'rgba(148, 163, 184, 0.06)',
-            color: '#64748b',
-            border: '1px solid rgba(148, 163, 184, 0.15)',
-          }}
-        />
-      </Box>
-    </Box>
-  );
-}
-
 function ThreeColumnMetric({
   title,
   items,
@@ -2570,7 +2373,7 @@ export function SummarySection({
             gridTemplateColumns: {
               xs: '1fr',
               sm: 'repeat(2, minmax(0, 1fr))',
-              xl: '1.4fr 0.85fr 0.75fr 1.3fr',
+              xl: '1.2fr 1.1fr 0.75fr 1.3fr',
             },
             gap: 1.5,
             p: { xs: 1.5, md: 1.75 },
@@ -2733,24 +2536,29 @@ export function SummarySection({
                 cursor: 'help',
               }}
             >
-              <TwoColumnMetric
-                title="Pagamentos"
-                leftLabel="Pago"
-                leftValue={pagamentosPago}
-                leftColor="#16a34a"
-                rightLabel="Vencido"
-                rightValue={pagamentosVencido}
-                rightColor={
-                  pagamentosVencido > 0
-                    ? '#dc2626'
-                    : '#94a3b8'
-                }
-                caption={
-                  `${pagamentosTitulos} títulos · ` +
-                  `Em aberto: ${formatCurrency(
-                    pagamentosEmAberto,
-                  )}`
-                }
+              <ThreeColumnMetric
+                title="Recebimentos"
+                items={[
+                  {
+                    label: 'Recebido',
+                    value: pagamentosPago,
+                    color: '#16a34a',
+                  },
+                  {
+                    label: 'A receber',
+                    value: pagamentosEmAberto,
+                    color: '#d97706',
+                  },
+                  {
+                    label: 'Vencido',
+                    value: pagamentosVencido,
+                    color:
+                      pagamentosVencido > 0
+                        ? '#dc2626'
+                        : '#94a3b8',
+                  },
+                ]}
+                caption={`${pagamentosTitulos} títulos`}
                 icon={
                   <AccountBalanceWalletOutlinedIcon />
                 }
