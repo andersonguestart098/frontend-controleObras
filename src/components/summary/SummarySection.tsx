@@ -1831,11 +1831,32 @@ export function SummarySection({
     totalDevolucoes +
     totalDevolucoesInternoObras;
 
+  const totalVendasBruto =
+    safeNumber(
+      kpis.vendas?.total_vendas,
+    );
+
+  /*
+   * Total venda do card Operações inclui a
+   * remessa futura, igual à tabela de
+   * tributos — mas aqui ainda sem descontar
+   * as devoluções, que aparecem em item
+   * separado logo ao lado.
+   */
+  const totalVendaComRemessa =
+    totalVendasBruto +
+    valorRemessaFutura;
+
+  /*
+   * Total líquido só abate a devolução
+   * normal (vendas). A devolução de Interno
+   * Obras abate apenas o próprio Interno
+   * Obras líquido, exibido em item separado.
+   */
   const totalVendasLiquido =
     roundMoney(
-      safeNumber(
-        kpis.vendas?.total_vendas,
-      ) - totalGeralDevolucoes,
+      totalVendaComRemessa -
+      totalDevolucoes,
     );
 
   /*
@@ -2166,7 +2187,7 @@ export function SummarySection({
 
         {/* OPERAÇÕES */}
         <OperationsBreakdownCard
-          salesValue={valorConsolidado}
+          salesValue={totalVendaComRemessa}
           netSalesValue={totalVendasLiquido}
           returnsValue={totalGeralDevolucoes}
           returnsSalesValue={totalDevolucoes}
