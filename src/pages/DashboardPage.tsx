@@ -894,6 +894,10 @@ export function DashboardPage() {
                             dashboard.data.kpis
                               .remessa_futura
                           }
+                          remessaTransporte={
+                            dashboard.data.kpis
+                              .remessa_transporte
+                          }
                         />
                       </Box>
                     </CardContent>

@@ -16,6 +16,7 @@ import {
 import { EChart } from '@/components/charts/EChart';
 import { useInViewOnce } from '@/components/common/RollingCurrency';
 import type {
+  NotasResumoKpis,
   RemessaControlResumo,
   RemessaFuturaKpis,
 } from '@/types/dashboard';
@@ -30,6 +31,17 @@ interface RemittanceProgressChartProps {
   data: RemessaFuturaKpis;
   resumo?: RemessaControlResumo;
   quantidades?: RemittanceQuantities;
+
+  /*
+   * Custo real das notas filhas (TOP 1010),
+   * vindo de remessas_transporte.sql.
+   *
+   * Substitui data.custo_entregue como
+   * numerador do gauge de custo, porque é o
+   * custo efetivamente transportado, e não a
+   * baixa calculada pela remessa-mãe.
+   */
+  remessaTransporte?: NotasResumoKpis;
 }
 
 interface GaugeConfig {
@@ -64,6 +76,16 @@ const REV_STEPS: RevStep[] = [
   { ratio: 1, duration: 460, easing: 'cubicOut' },
 ];
 
+/*
+ * Arredondar pra cima (toFixed normal) faz
+ * 99,98% virar "100.0" e o gauge mostrar
+ * 100% com saldo ainda em aberto.
+ *
+ * Por isso o percentual só fecha em 100
+ * quando realmente bate (parte >= total);
+ * fora isso, trunca pra baixo.
+ */
+
 function calculatePercent(
   parte: number,
   total: number,
@@ -72,12 +94,16 @@ function calculatePercent(
     return 0;
   }
 
-  return Number(
-    Math.min(
-      Math.max((parte / total) * 100, 0),
-      100,
-    ).toFixed(1),
+  const ratio = Math.min(
+    Math.max((parte / total) * 100, 0),
+    100,
   );
+
+  if (ratio >= 100) {
+    return 100;
+  }
+
+  return Math.floor(ratio * 10) / 10;
 }
 
 function clampPercent(value: number): number {
@@ -291,6 +317,7 @@ export function RemittanceProgressChart({
   data,
   resumo,
   quantidades,
+  remessaTransporte,
 }: RemittanceProgressChartProps) {
   const theme = useTheme();
 
@@ -346,6 +373,23 @@ export function RemittanceProgressChart({
     };
   }, [data, quantidades, resumo]);
 
+  /*
+   * O custo entregue considera o custo REAL
+   * das notas filhas (TOP 1010), vindo de
+   * remessas_transporte.sql, e não a baixa
+   * calculada pela remessa-mãe.
+   *
+   * Sem esse dado, cai de volta no
+   * data.custo_entregue.
+   */
+  const custoEntregueReal =
+    remessaTransporte
+      ? (remessaTransporte
+          .custo_medio_sem_icms_total ??
+        remessaTransporte.custo_total ??
+        0)
+      : data.custo_entregue;
+
   const gauges = useMemo<GaugeConfig[]>(
     () => {
       const lista: GaugeConfig[] = [
@@ -369,12 +413,12 @@ export function RemittanceProgressChart({
           key: 'custo',
           title: 'Custo entregue',
           percent: calculatePercent(
-            data.custo_entregue,
+            custoEntregueReal,
             data.custo_total,
           ),
           color: '#C18D34',
           helper: `${formatCurrency(
-            data.custo_entregue,
+            custoEntregueReal,
           )} de ${formatCurrency(
             data.custo_total,
           )}`,
@@ -398,7 +442,7 @@ export function RemittanceProgressChart({
 
       return lista;
     },
-    [data, quantidadesFinais],
+    [data, quantidadesFinais, custoEntregueReal],
   );
 
   return (
