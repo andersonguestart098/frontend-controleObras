@@ -1915,7 +1915,7 @@ export function SummarySection({
               }}
             >
               <Chip
-                label="CUSTO PRÓPRIO"
+                label="CUSTO REMESSA"
                 size="small"
                 sx={{
                   height: 24,

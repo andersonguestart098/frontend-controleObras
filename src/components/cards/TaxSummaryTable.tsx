@@ -1703,12 +1703,12 @@ export function TaxSummaryTable({
             value={margemBruta}
             color={
               margemBruta >= 0
-                ? taxColors.valor
+                ? '#2563eb'
                 : taxColors.negative
             }
             backgroundColor={
               margemBruta >= 0
-                ? 'rgba(15, 118, 110, 0.08)'
+                ? 'rgba(37, 99, 235, 0.08)'
                 : 'rgba(220, 38, 38, 0.07)'
             }
           />
@@ -1719,12 +1719,12 @@ export function TaxSummaryTable({
             percent={resultadoLiquidoPercent}
             color={
               resultadoLiquido >= 0
-                ? '#2563eb'
+                ? taxColors.valor
                 : taxColors.negative
             }
             backgroundColor={
               resultadoLiquido >= 0
-                ? 'rgba(37, 99, 235, 0.08)'
+                ? 'rgba(15, 118, 110, 0.08)'
                 : 'rgba(220, 38, 38, 0.07)'
             }
           />
