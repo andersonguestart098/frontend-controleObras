@@ -1522,6 +1522,13 @@ function OperationsBreakdownCard({
         : 'rgba(239, 68, 68, 0.04)',
     },
     {
+      key: 'bonificacoes',
+      label: 'Bonificação',
+      value: bonusValue,
+      color: '#C96A16',
+      backgroundColor: 'rgba(139, 92, 246, 0.04)',
+    },
+    {
       key: 'custo',
       label: 'Total custo',
       value: totalCost,
@@ -1556,13 +1563,6 @@ function OperationsBreakdownCard({
           netValue={internalValue}
         />
       ),
-    },
-    {
-      key: 'bonificacoes',
-      label: 'Bonificação',
-      value: bonusValue,
-      color: '#C96A16',
-      backgroundColor: 'rgba(139, 92, 246, 0.04)',
     },
   ];
 
@@ -2570,7 +2570,7 @@ export function SummarySection({
             gridTemplateColumns: {
               xs: '1fr',
               sm: 'repeat(2, minmax(0, 1fr))',
-              xl: '1.4fr 1.3fr 0.75fr 0.85fr',
+              xl: '1.4fr 0.85fr 0.75fr 1.3fr',
             },
             gap: 1.5,
             p: { xs: 1.5, md: 1.75 },
@@ -2712,44 +2712,6 @@ export function SummarySection({
             </Box>
           </Box>
 
-          {/* REMESSA: FATURADO, ENTREGUE E SALDO */}
-          <ThreeColumnMetric
-            title="Remessa"
-            items={[
-              {
-                label: 'Faturado',
-                value: valorRemessaFutura,
-                color: '#0f172a',
-              },
-              {
-                label: 'Entregue',
-                value: valorRemessaTransporte,
-                color: '#3b82f6',
-              },
-              {
-                label: 'Saldo',
-                value: saldoRemessa,
-                color: '#d97706',
-              },
-            ]}
-            caption="Faturamento, entrega e saldo da remessa"
-            icon={<Inventory2OutlinedIcon />}
-            iconColor="#3b82f6"
-            backgroundColor="rgba(59, 130, 246, 0.04)"
-          />
-
-          {/* COMPRAS */}
-          <SingleMetric
-            title="Compras"
-            label="Valor nota"
-            value={comprasValor}
-            color="#0d9488"
-            caption="Notas de compra do projeto"
-            icon={<ShoppingCartOutlinedIcon />}
-            iconColor="#0d9488"
-            backgroundColor="rgba(13, 148, 136, 0.04)"
-          />
-
           {/* PAGAMENTOS */}
           <Tooltip
             title={
@@ -2797,6 +2759,44 @@ export function SummarySection({
               />
             </Box>
           </Tooltip>
+
+          {/* COMPRAS */}
+          <SingleMetric
+            title="Compras"
+            label="Valor nota"
+            value={comprasValor}
+            color="#0d9488"
+            caption="Notas de compra do projeto"
+            icon={<ShoppingCartOutlinedIcon />}
+            iconColor="#0d9488"
+            backgroundColor="rgba(13, 148, 136, 0.04)"
+          />
+
+          {/* REMESSA: FATURADO, ENTREGUE E SALDO */}
+          <ThreeColumnMetric
+            title="Remessa"
+            items={[
+              {
+                label: 'Faturado',
+                value: valorRemessaFutura,
+                color: '#0f172a',
+              },
+              {
+                label: 'Entregue',
+                value: valorRemessaTransporte,
+                color: '#3b82f6',
+              },
+              {
+                label: 'Saldo',
+                value: saldoRemessa,
+                color: '#d97706',
+              },
+            ]}
+            caption="Faturamento, entrega e saldo da remessa"
+            icon={<Inventory2OutlinedIcon />}
+            iconColor="#3b82f6"
+            backgroundColor="rgba(59, 130, 246, 0.04)"
+          />
         </Box>
       </Card>
     </Box>
