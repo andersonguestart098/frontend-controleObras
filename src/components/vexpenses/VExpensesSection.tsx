@@ -201,7 +201,7 @@ function VExpensesCardsSkeleton() {
         gap: 1.5,
         gridTemplateColumns: {
           xs: '1fr',
-          lg: '1.05fr 1fr 1fr',
+          lg: '0.8fr 1fr 1fr',
         },
       }}
     >
@@ -292,7 +292,7 @@ export function VExpensesSection({
               alignItems: 'stretch',
               gridTemplateColumns: {
                 xs: '1fr',
-                lg: '1.05fr 1fr 1fr',
+                lg: '0.8fr 1fr 1fr',
               },
             }}
           >
@@ -312,7 +312,7 @@ export function VExpensesSection({
                 borderRadius: 3,
                 color: '#ffffff',
                 background:
-                  'linear-gradient(135deg, #172033 0%, #20304a 52%, #0d6f65 135%)',
+                  'linear-gradient(135deg, #172033 0%, #20304a 52%, #0d4f7a 135%)',
                 boxShadow: '0 10px 28px rgba(15, 23, 42, 0.18)',
                 '&::before': {
                   content: '""',
@@ -322,7 +322,7 @@ export function VExpensesSection({
                   right: -85,
                   bottom: -120,
                   borderRadius: '50%',
-                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                  backgroundColor: 'rgba(63, 161, 255, 0.18)',
                 },
               }}
             >
@@ -413,7 +413,7 @@ export function VExpensesSection({
                     backgroundColor: error
                       ? 'rgba(239, 68, 68, 0.22)'
                       : linked
-                        ? 'rgba(16, 185, 129, 0.20)'
+                        ? 'rgba(63, 161, 255, 0.22)'
                         : 'rgba(148, 163, 184, 0.20)',
                     border: '1px solid rgba(255, 255, 255, 0.15)',
                     fontSize: '0.6rem',
@@ -502,32 +502,6 @@ export function VExpensesSection({
             }}
           >
             Não foi possível atualizar a VExpenses. Os cards foram mantidos zerados.
-          </Typography>
-        ) : null}
-
-        {!loading && !error && !linked ? (
-          <Typography
-            sx={{
-              mt: 1,
-              color: '#64748b',
-              fontSize: '0.68rem',
-              fontWeight: 700,
-            }}
-          >
-            Nenhum projeto VExpenses está vinculado ao CODPROJ informado.
-          </Typography>
-        ) : null}
-
-        {!loading && linked && totalAprovado === 0 ? (
-          <Typography
-            sx={{
-              mt: 1,
-              color: '#64748b',
-              fontSize: '0.68rem',
-              fontWeight: 700,
-            }}
-          >
-            Projeto vinculado, mas sem despesas aprovadas no período selecionado.
           </Typography>
         ) : null}
       </Card>
