@@ -20,11 +20,15 @@ import { DashboardFilterBar } from '@/components/filters/DashboardFilterBar';
 import { SectionHeader } from '@/components/layout/SectionHeader';
 import { RemittanceControlTable } from '@/components/remessas/RemittanceControlTable';
 import { SummarySection } from '@/components/summary/SummarySection';
+import { VExpensesSection } from '@/components/vexpenses/VExpensesSection';
 import { MovimentosAuditTable } from '@/components/cards/MovimentosAuditTable';
 import { useDashboardKpis } from '@/hooks/useDashboardKpis';
 import { useRemessasControl } from '@/hooks/useRemessasControl';
 import { useMovimentos } from '../hooks/useMovimentos';
 import { usePagamentos } from '@/hooks/usePagamentos';
+import { useVExpensesSummary } from '@/hooks/useVExpensesSummary';
+
+
 import type { DashboardFilters } from '@/types/dashboard';
 
 
@@ -363,11 +367,24 @@ export function DashboardPage() {
 
   const pagamentos = usePagamentos(filters);
 
+  const vexpenses = useVExpensesSummary({
+  codproj: filters.codproj,
+
+  data_inicial:
+    filters.dtneg_inicial ?? undefined,
+
+  data_final:
+    filters.dtneg_final ?? undefined,
+
+  incluir_movimentos: false,
+});
+
   const isUpdating =
     dashboard.isFetching ||
     remessasControl.isFetching ||
     movimentos.isFetching ||
-    pagamentos.isFetching;
+    pagamentos.isFetching ||
+    vexpenses.isFetching;
 
   const isDashboardLoading =
     dashboard.isPending ||
@@ -400,6 +417,7 @@ export function DashboardPage() {
       remessasControl.refetch(),
       movimentos.refetch(),
       pagamentos.refetch(),
+      vexpenses.refetch(),
     ]);
   }
 
@@ -733,25 +751,46 @@ export function DashboardPage() {
                 flexDirection: 'column',
               }}
             >
-              {/* RESUMO EXECUTIVO */}
-              <Box
-                component="section"
-                sx={{
-                  ...summarySectionSx,
-                  ...fadeUpSx(180),
-                }}
-              >
-                {dashboard.isFetching ? (
-                  <SummarySectionSkeleton />
-                ) : (
-                  <SummarySection
-                  kpis={dashboard.data.kpis}
-                  pagamentos={
-                    pagamentos.data?.pagamentos ?? []
-                  }
-                />
-                )}
-              </Box>
+{/* RESUMO EXECUTIVO */}
+<Box
+  component="section"
+  sx={{
+    ...summarySectionSx,
+    ...fadeUpSx(180),
+  }}
+>
+  {dashboard.isFetching ? (
+    <SummarySectionSkeleton />
+  ) : (
+    <SummarySection
+      kpis={dashboard.data.kpis}
+      pagamentos={
+        pagamentos.data?.pagamentos ?? []
+      }
+    />
+  )}
+</Box>
+
+{/* DESPESAS VEXPENSES */}
+<Box
+  component="section"
+  sx={{
+    mt: {
+      xs: 3,
+      md: 3.5,
+    },
+    ...fadeUpSx(230),
+  }}
+>
+  <VExpensesSection
+    result={vexpenses.data}
+    loading={
+      vexpenses.isPending ||
+      vexpenses.isFetching
+    }
+    error={vexpenses.error}
+  />
+</Box>
 
               {/* IMPOSTOS E COMISSÃO */}
               <Box

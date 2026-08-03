@@ -28,9 +28,37 @@ import {
   formatPercentRatio,
 } from '@/utils/formatters';
 
+type PagamentoTituloDetalhado = PagamentoTitulo & {
+  forma_liquidacao?: string | null;
+  valor_recebido_em_conta?: number | null;
+  valor_compensado?: number | null;
+  valor_em_aberto?: number | null;
+  valor_vencido?: number | null;
+  valor_liquido?: number | null;
+  tipacerto?: string | null;
+  nuacerto?: number | null;
+  nubco?: number | null;
+  historico?: string | null;
+  vlrlanc?: number | null;
+};
+
+interface PagamentosKpisDetalhados {
+  quantidade_titulos?: number | null;
+  quantidade_recebidos_em_conta?: number | null;
+  quantidade_compensados?: number | null;
+  quantidade_vencidos?: number | null;
+  quantidade_em_aberto?: number | null;
+  valor_pago?: number | null;
+  valor_recebido_em_conta?: number | null;
+  valor_compensado?: number | null;
+  valor_em_aberto?: number | null;
+  valor_vencido?: number | null;
+  saldo_aberto?: number | null;
+}
+
 interface SummarySectionProps {
   kpis: DashboardKpis;
-  pagamentos?: PagamentoTitulo[];
+  pagamentos?: PagamentoTituloDetalhado[];
 }
 
 interface SingleMetricProps {
@@ -813,94 +841,343 @@ const paymentsTooltipSlotProps = {
   arrow: richTooltipSlotProps.arrow,
 } as const;
 
-type PagamentoStatus =
-  | 'PAGO'
+type PagamentoGrupo =
+  | 'RECEBIDO_EM_CONTA'
+  | 'COMPENSADO'
   | 'VENCIDO'
-  | 'EM ABERTO';
+  | 'EM_ABERTO'
+  | 'OUTRA_BAIXA';
 
 interface PaymentGroupConfig {
-  status: PagamentoStatus;
+  status: PagamentoGrupo;
   label: string;
+  description: string;
   color: string;
   backgroundColor: string;
 }
 
 const paymentGroups: PaymentGroupConfig[] = [
   {
+    status: 'RECEBIDO_EM_CONTA',
+    label: 'Recebido em conta',
+    description:
+      'Dinheiro efetivamente recebido com movimento bancário.',
+    color: '#16a34a',
+    backgroundColor: 'rgba(22, 163, 74, 0.055)',
+  },
+  {
+    status: 'COMPENSADO',
+    label: 'Compensado',
+    description:
+      'Título quitado com crédito ou devolução, sem entrada de dinheiro.',
+    color: '#7c3aed',
+    backgroundColor: 'rgba(124, 58, 237, 0.055)',
+  },
+  {
     status: 'VENCIDO',
-    label: 'Vencidos',
+    label: 'Vencido',
+    description:
+      'Título ainda aberto com vencimento já ultrapassado.',
     color: '#dc2626',
     backgroundColor: 'rgba(220, 38, 38, 0.055)',
   },
   {
-    status: 'EM ABERTO',
-    label: 'Em aberto',
+    status: 'EM_ABERTO',
+    label: 'A vencer',
+    description:
+      'Título ainda aberto, mas dentro do prazo de vencimento.',
     color: '#d97706',
     backgroundColor: 'rgba(217, 119, 6, 0.055)',
   },
   {
-    status: 'PAGO',
-    label: 'Pagos',
-    color: '#16a34a',
-    backgroundColor: 'rgba(22, 163, 74, 0.055)',
+    status: 'OUTRA_BAIXA',
+    label: 'Outra baixa',
+    description:
+      'Título baixado por outra modalidade que exige conferência.',
+    color: '#64748b',
+    backgroundColor: 'rgba(100, 116, 139, 0.055)',
   },
 ];
 
-function normalizePaymentStatus(
-  value: string | null | undefined,
-): PagamentoStatus | '' {
-  const status = String(value ?? '')
+function normalizePaymentGroup(
+  titulo: PagamentoTituloDetalhado,
+): PagamentoGrupo | '' {
+  const formaLiquidacao = String(
+    titulo.forma_liquidacao ?? '',
+  )
     .trim()
     .toUpperCase()
-    .replace('_', ' ');
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  const tipacerto = String(
+    titulo.tipacerto ?? '',
+  )
+    .trim()
+    .toUpperCase();
+
+  const valorRecebidoEmConta = safeNumber(
+    titulo.valor_recebido_em_conta,
+  );
+
+  const valorCompensado = safeNumber(
+    titulo.valor_compensado,
+  );
+
+  const valorVencido = safeNumber(
+    titulo.valor_vencido,
+  );
+
+  const valorEmAberto = safeNumber(
+    titulo.valor_em_aberto,
+  );
+
+  const valorBaixa = safeNumber(
+    titulo.valor_baixa,
+  );
+
+  const valorTitulo = Math.abs(
+    safeNumber(titulo.valor_titulo),
+  );
+
+  /*
+   * Compensação tem prioridade sobre qualquer outra baixa.
+   * Assim, TIPACERTO C/V nunca será exibido como dinheiro recebido.
+   */
+  if (
+    formaLiquidacao.includes('COMPENSACAO') ||
+    formaLiquidacao.includes('CREDITO DE DEVOLUCAO') ||
+    tipacerto === 'C' ||
+    tipacerto === 'V' ||
+    titulo.nuacerto != null ||
+    valorCompensado > 0
+  ) {
+    return 'COMPENSADO';
+  }
 
   if (
-    status === 'PAGO' ||
-    status === 'VENCIDO' ||
-    status === 'EM ABERTO'
+    formaLiquidacao === 'RECEBIDO EM CONTA' ||
+    valorRecebidoEmConta > 0
   ) {
-    return status;
+    return 'RECEBIDO_EM_CONTA';
+  }
+
+  if (
+    formaLiquidacao === 'VENCIDO' ||
+    valorVencido > 0
+  ) {
+    return 'VENCIDO';
+  }
+
+  if (
+    formaLiquidacao === 'EM ABERTO' ||
+    formaLiquidacao === 'ABERTO' ||
+    valorEmAberto > 0 ||
+    (
+      titulo.dhbaixa == null &&
+      titulo.nuacerto == null &&
+      valorBaixa === 0 &&
+      valorTitulo > 0
+    )
+  ) {
+    return 'EM_ABERTO';
+  }
+
+  if (
+    formaLiquidacao === 'OUTRA FORMA DE BAIXA' ||
+    valorBaixa > 0
+  ) {
+    return 'OUTRA_BAIXA';
   }
 
   return '';
 }
 
 function getPaymentValue(
-  titulo: PagamentoTitulo,
+  titulo: PagamentoTituloDetalhado,
+  grupo = normalizePaymentGroup(titulo),
 ): number {
-  const status = normalizePaymentStatus(
-    titulo.status_titulo,
-  );
+  switch (grupo) {
+    case 'RECEBIDO_EM_CONTA':
+      return safeNumber(
+        titulo.valor_recebido_em_conta,
+      );
 
-  if (status === 'PAGO') {
-    const valorBaixa = safeNumber(
-      titulo.valor_baixa,
+    case 'COMPENSADO':
+      return (
+        safeNumber(titulo.valor_compensado) ||
+        safeNumber(titulo.valor_baixa) ||
+        Math.abs(safeNumber(titulo.valor_liquido)) ||
+        Math.abs(safeNumber(titulo.valor_titulo))
+      );
+
+    case 'VENCIDO':
+      return (
+        safeNumber(titulo.valor_vencido) ||
+        safeNumber(titulo.valor_em_aberto)
+      );
+
+    case 'EM_ABERTO':
+      return (
+        safeNumber(titulo.valor_em_aberto) ||
+        Math.max(
+          Math.abs(safeNumber(titulo.valor_titulo)) -
+            Math.abs(safeNumber(titulo.valor_baixa)),
+          0,
+        )
+      );
+
+    case 'OUTRA_BAIXA':
+      return (
+        safeNumber(titulo.valor_baixa) ||
+        Math.abs(safeNumber(titulo.valor_liquido)) ||
+        Math.abs(safeNumber(titulo.valor_titulo))
+      );
+
+    default:
+      return 0;
+  }
+}
+
+interface PaymentSummary {
+  quantidadeTitulos: number;
+  quantidadeRecebidos: number;
+  quantidadeCompensados: number;
+  quantidadeVencidos: number;
+  quantidadeEmAberto: number;
+  quantidadeOutrasBaixas: number;
+  valorRecebidoEmConta: number;
+  valorCompensado: number;
+  valorVencido: number;
+  valorEmAberto: number;
+  valorOutrasBaixas: number;
+  saldoAReceber: number;
+  totalTitulos: number;
+  totalQuitado: number;
+}
+
+function buildPaymentSummary(
+  pagamentos: PagamentoTituloDetalhado[],
+): PaymentSummary {
+  const summary: PaymentSummary = {
+    quantidadeTitulos: pagamentos.length,
+    quantidadeRecebidos: 0,
+    quantidadeCompensados: 0,
+    quantidadeVencidos: 0,
+    quantidadeEmAberto: 0,
+    quantidadeOutrasBaixas: 0,
+    valorRecebidoEmConta: 0,
+    valorCompensado: 0,
+    valorVencido: 0,
+    valorEmAberto: 0,
+    valorOutrasBaixas: 0,
+    saldoAReceber: 0,
+    totalTitulos: 0,
+    totalQuitado: 0,
+  };
+
+  pagamentos.forEach((titulo) => {
+    const grupo = normalizePaymentGroup(titulo);
+    const valor = getPaymentValue(titulo, grupo);
+
+    summary.totalTitulos += Math.abs(
+      safeNumber(titulo.valor_titulo),
     );
 
-    return valorBaixa || safeNumber(
-      titulo.valor_titulo,
-    );
+    switch (grupo) {
+      case 'RECEBIDO_EM_CONTA':
+        summary.quantidadeRecebidos += 1;
+        summary.valorRecebidoEmConta += valor;
+        break;
+
+      case 'COMPENSADO':
+        summary.quantidadeCompensados += 1;
+        summary.valorCompensado += valor;
+        break;
+
+      case 'VENCIDO':
+        summary.quantidadeVencidos += 1;
+        summary.valorVencido += valor;
+        break;
+
+      case 'EM_ABERTO':
+        summary.quantidadeEmAberto += 1;
+        summary.valorEmAberto += valor;
+        break;
+
+      case 'OUTRA_BAIXA':
+        summary.quantidadeOutrasBaixas += 1;
+        summary.valorOutrasBaixas += valor;
+        break;
+    }
+  });
+
+  summary.saldoAReceber =
+    summary.valorEmAberto + summary.valorVencido;
+
+  summary.totalQuitado =
+    summary.valorRecebidoEmConta +
+    summary.valorCompensado +
+    summary.valorOutrasBaixas;
+
+  return summary;
+}
+
+function getPaymentExplanation(
+  titulo: PagamentoTituloDetalhado,
+  grupo: PagamentoGrupo,
+): string {
+  if (grupo === 'RECEBIDO_EM_CONTA') {
+    return titulo.nubco != null
+      ? `Entrada bancária confirmada · NUBCO ${titulo.nubco}`
+      : 'Classificado como entrada efetiva de dinheiro';
   }
 
-  return safeNumber(titulo.saldo_aberto);
+  if (grupo === 'COMPENSADO') {
+    const detalhes = [
+      'Sem entrada de caixa',
+      titulo.nuacerto != null
+        ? `Acerto ${titulo.nuacerto}`
+        : null,
+      titulo.tipacerto
+        ? `TIPACERTO ${titulo.tipacerto}`
+        : null,
+    ].filter(Boolean);
+
+    return detalhes.join(' · ');
+  }
+
+  if (grupo === 'VENCIDO') {
+    return 'Ainda não liquidado e com vencimento ultrapassado';
+  }
+
+  if (grupo === 'EM_ABERTO') {
+    return 'Ainda não liquidado e dentro do prazo';
+  }
+
+  return (
+    titulo.forma_liquidacao ||
+    'Baixa registrada por outra modalidade'
+  );
 }
 
 function PaymentsBreakdownTooltip({
   pagamentos,
 }: {
-  pagamentos: PagamentoTitulo[];
+  pagamentos: PagamentoTituloDetalhado[];
 }) {
   const grupos = paymentGroups.map((grupo) => {
     const titulos = pagamentos.filter(
       (titulo) =>
-        normalizePaymentStatus(
-          titulo.status_titulo,
-        ) === grupo.status,
+        normalizePaymentGroup(titulo) === grupo.status,
     );
 
     const total = titulos.reduce(
       (acumulado, titulo) =>
-        acumulado + getPaymentValue(titulo),
+        acumulado +
+        getPaymentValue(titulo, grupo.status),
       0,
     );
 
@@ -911,56 +1188,89 @@ function PaymentsBreakdownTooltip({
     };
   });
 
-  const totalGeral = grupos.reduce(
-    (acumulado, grupo) =>
-      acumulado + grupo.total,
-    0,
+  const resumo = buildPaymentSummary(pagamentos);
+
+  const gruposComTitulos = grupos.filter(
+    (grupo) => grupo.titulos.length > 0,
   );
+
+  const resumoItens = [
+    {
+      label: 'Entrou no banco',
+      value: resumo.valorRecebidoEmConta,
+      color: '#16a34a',
+    },
+    {
+      label: 'Compensado sem caixa',
+      value: resumo.valorCompensado,
+      color: '#7c3aed',
+    },
+    {
+      label: 'Saldo a receber',
+      value: resumo.saldoAReceber,
+      color: '#d97706',
+    },
+    {
+      label: 'Vencido',
+      value: resumo.valorVencido,
+      color: resumo.valorVencido > 0
+        ? '#dc2626'
+        : '#94a3b8',
+    },
+  ];
 
   return (
     <Box
       sx={{
-        width: 500,
-        maxWidth: 'calc(100vw - 48px)',
-        p: 0.5,
+        width: 440,
+        maxWidth: 'calc(100vw - 24px)',
+        maxHeight: 'calc(100vh - 32px)',
+        display: 'flex',
+        flexDirection: 'column',
+        p: 0.4,
       }}
     >
-      <Typography
-        sx={{
-          color: '#94a3b8',
-          fontSize: '0.66rem',
-          fontWeight: 900,
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-        }}
-      >
-        Detalhamento dos pagamentos
-      </Typography>
-
       <Box
         sx={{
-          mt: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 1.5,
+          gap: 1,
         }}
       >
-        <Typography
-          sx={{
-            color: '#334155',
-            fontSize: '0.76rem',
-            fontWeight: 800,
-          }}
-        >
-          Títulos vinculados à obra
-        </Typography>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              color: '#94a3b8',
+              fontSize: '0.63rem',
+              fontWeight: 900,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Detalhamento dos recebimentos
+          </Typography>
+
+          <Typography
+            sx={{
+              mt: 0.15,
+              color: '#475569',
+              fontSize: '0.66rem',
+              fontWeight: 700,
+              lineHeight: 1.3,
+            }}
+          >
+            Em conta é dinheiro recebido. Compensado quita o
+            título sem entrada bancária.
+          </Typography>
+        </Box>
 
         <Chip
           label={`${pagamentos.length} títulos`}
           size="small"
           sx={{
             height: 21,
+            flexShrink: 0,
             color: '#475569',
             backgroundColor:
               'rgba(148, 163, 184, 0.10)',
@@ -972,113 +1282,76 @@ function PaymentsBreakdownTooltip({
 
       <Box
         sx={{
-          mt: 0.75,
-          display: 'flex',
-          flexDirection: 'column',
+          mt: 0.85,
+          display: 'grid',
+          gridTemplateColumns:
+            'repeat(2, minmax(0, 1fr))',
           gap: 0.6,
-          pl: 1,
-          borderLeft:
-            '2px solid rgba(148, 163, 184, 0.20)',
         }}
       >
-        {grupos.map((grupo) => (
+        {resumoItens.map((item) => (
           <Box
-            key={grupo.status}
+            key={item.label}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1.5,
+              px: 0.85,
+              py: 0.65,
+              borderRadius: 1.4,
+              backgroundColor:
+                'rgba(148, 163, 184, 0.045)',
+              border:
+                '1px solid rgba(148, 163, 184, 0.10)',
             }}
           >
-            <Box
+            <Typography
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.65,
-                minWidth: 0,
+                color: '#64748b',
+                fontSize: '0.58rem',
+                fontWeight: 850,
+                textTransform: 'uppercase',
+                letterSpacing: '0.025em',
               }}
             >
-              <Box
-                sx={{
-                  width: 7,
-                  height: 7,
-                  flexShrink: 0,
-                  borderRadius: '50%',
-                  backgroundColor: grupo.color,
-                  boxShadow:
-                    `0 0 6px ${grupo.color}66`,
-                }}
-              />
-
-              <Typography
-                sx={{
-                  color: '#64748b',
-                  fontSize: '0.73rem',
-                  fontWeight: 700,
-                }}
-              >
-                {grupo.label} ({grupo.titulos.length})
-              </Typography>
-            </Box>
+              {item.label}
+            </Typography>
 
             <Typography
               sx={{
-                color: grupo.color,
-                fontSize: '0.78rem',
-                fontWeight: 850,
+                mt: 0.1,
+                color: item.color,
+                fontSize: '0.76rem',
+                fontWeight: 900,
                 whiteSpace: 'nowrap',
               }}
             >
-              {formatCurrency(grupo.total)}
+              {formatCurrency(item.value)}
             </Typography>
           </Box>
         ))}
       </Box>
 
-      <Box
+      <Typography
         sx={{
-          mt: 0.9,
-          pt: 0.8,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 1.5,
-          borderTop:
-            '1px solid rgba(148, 163, 184, 0.22)',
+          mt: 0.55,
+          color: '#94a3b8',
+          fontSize: '0.59rem',
+          fontWeight: 700,
+          textAlign: 'right',
         }}
       >
-        <Typography
-          sx={{
-            color: '#0f172a',
-            fontSize: '0.74rem',
-            fontWeight: 900,
-          }}
-        >
-          Total dos títulos
-        </Typography>
-
-        <Typography
-          sx={{
-            color: '#0f172a',
-            fontSize: '0.84rem',
-            fontWeight: 900,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {formatCurrency(totalGeral)}
-        </Typography>
-      </Box>
+        Total dos títulos: {formatCurrency(resumo.totalTitulos)}
+        {' · '}Total quitado: {formatCurrency(resumo.totalQuitado)}
+      </Typography>
 
       <Box
         sx={{
-          mt: 1,
-          pt: 0.8,
-          maxHeight: 330,
+          mt: 0.75,
+          pt: 0.7,
+          minHeight: 0,
+          maxHeight: 250,
           overflowY: 'auto',
-          pr: 0.5,
+          pr: 0.4,
           borderTop:
-            '1px solid rgba(148, 163, 184, 0.22)',
+            '1px solid rgba(148, 163, 184, 0.20)',
           scrollbarWidth: 'thin',
           scrollbarColor:
             'rgba(100, 116, 139, 0.42) transparent',
@@ -1095,9 +1368,9 @@ function PaymentsBreakdownTooltip({
         {pagamentos.length === 0 ? (
           <Typography
             sx={{
-              py: 1.2,
+              py: 1,
               color: '#94a3b8',
-              fontSize: '0.7rem',
+              fontSize: '0.68rem',
               fontWeight: 700,
               textAlign: 'center',
             }}
@@ -1105,15 +1378,15 @@ function PaymentsBreakdownTooltip({
             Nenhum título encontrado para os filtros.
           </Typography>
         ) : (
-          grupos.map((grupo) => (
+          gruposComTitulos.map((grupo) => (
             <Box
               key={`detalhe-${grupo.status}`}
               sx={{
                 '& + &': {
-                  mt: 1.1,
-                  pt: 1,
+                  mt: 0.9,
+                  pt: 0.8,
                   borderTop:
-                    '1px solid rgba(148, 163, 184, 0.16)',
+                    '1px solid rgba(148, 163, 184, 0.14)',
                 },
               }}
             >
@@ -1122,26 +1395,45 @@ function PaymentsBreakdownTooltip({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: 1.5,
-                  mb: 0.65,
+                  gap: 1,
+                  mb: 0.5,
                 }}
               >
-                <Typography
+                <Box
                   sx={{
-                    color: grupo.color,
-                    fontSize: '0.68rem',
-                    fontWeight: 900,
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.55,
                   }}
                 >
-                  {grupo.label}
-                </Typography>
+                  <Box
+                    sx={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      backgroundColor: grupo.color,
+                      boxShadow:
+                        `0 0 6px ${grupo.color}66`,
+                    }}
+                  />
+
+                  <Typography
+                    sx={{
+                      color: grupo.color,
+                      fontSize: '0.65rem',
+                      fontWeight: 900,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {grupo.label} ({grupo.titulos.length})
+                  </Typography>
+                </Box>
 
                 <Typography
                   sx={{
                     color: grupo.color,
-                    fontSize: '0.7rem',
+                    fontSize: '0.69rem',
                     fontWeight: 900,
                     whiteSpace: 'nowrap',
                   }}
@@ -1150,98 +1442,103 @@ function PaymentsBreakdownTooltip({
                 </Typography>
               </Box>
 
-              {grupo.titulos.length === 0 ? (
-                <Typography
-                  sx={{
-                    py: 0.65,
-                    color: '#94a3b8',
-                    fontSize: '0.67rem',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  Nenhum título nesta situação.
-                </Typography>
-              ) : (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 0.55,
-                  }}
-                >
-                  {grupo.titulos.map(
-                    (titulo, index) => (
-                      <Box
-                        key={
-                          titulo.nufin ??
-                          `${titulo.nunota}-${titulo.parcela}-${index}`
-                        }
-                        sx={{
-                          display: 'grid',
-                          gridTemplateColumns:
-                            'minmax(0, 1fr) auto',
-                          alignItems: 'center',
-                          gap: 1.5,
-                          px: 1,
-                          py: 0.8,
-                          borderRadius: 1.5,
-                          backgroundColor:
-                            grupo.backgroundColor,
-                          border:
-                            `1px solid ${grupo.color}18`,
-                        }}
-                      >
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography
-                            noWrap
-                            title={
-                              titulo.parceiro ??
-                              undefined
-                            }
-                            sx={{
-                              color: '#334155',
-                              fontSize: '0.7rem',
-                              fontWeight: 850,
-                            }}
-                          >
-                            {titulo.parceiro ||
-                              'Parceiro não informado'}
-                          </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.45,
+                }}
+              >
+                {grupo.titulos.map(
+                  (titulo, index) => (
+                    <Box
+                      key={
+                        titulo.nufin ??
+                        `${titulo.nunota}-${titulo.parcela}-${index}`
+                      }
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          'minmax(0, 1fr) auto',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 0.85,
+                        py: 0.65,
+                        borderRadius: 1.35,
+                        backgroundColor:
+                          grupo.backgroundColor,
+                        border:
+                          `1px solid ${grupo.color}18`,
+                      }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          noWrap
+                          title={
+                            titulo.parceiro ??
+                            undefined
+                          }
+                          sx={{
+                            color: '#334155',
+                            fontSize: '0.67rem',
+                            fontWeight: 850,
+                          }}
+                        >
+                          {titulo.parceiro ||
+                            'Parceiro não informado'}
+                        </Typography>
 
-                          <Typography
-                            noWrap
-                            sx={{
-                              mt: 0.15,
-                              color: '#94a3b8',
-                              fontSize: '0.62rem',
-                              fontWeight: 700,
-                            }}
-                          >
-                            NF {titulo.nunota ?? '—'}
-                            {' · '}Parcela{' '}
-                            {titulo.parcela ?? '—'}
-                            {' · '}NUFIN{' '}
-                            {titulo.nufin ?? '—'}
-                          </Typography>
-                        </Box>
+                        <Typography
+                          noWrap
+                          sx={{
+                            mt: 0.1,
+                            color: '#94a3b8',
+                            fontSize: '0.59rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          NF {titulo.nunota ?? '—'}
+                          {' · '}Parcela{' '}
+                          {titulo.parcela ?? '—'}
+                          {' · '}NUFIN{' '}
+                          {titulo.nufin ?? '—'}
+                        </Typography>
 
                         <Typography
                           sx={{
+                            mt: 0.15,
                             color: grupo.color,
-                            fontSize: '0.73rem',
-                            fontWeight: 900,
-                            whiteSpace: 'nowrap',
+                            fontSize: '0.58rem',
+                            fontWeight: 800,
+                            lineHeight: 1.2,
                           }}
                         >
-                          {formatCurrency(
-                            getPaymentValue(titulo),
+                          {getPaymentExplanation(
+                            titulo,
+                            grupo.status,
                           )}
                         </Typography>
                       </Box>
-                    ),
-                  )}
-                </Box>
-              )}
+
+                      <Typography
+                        sx={{
+                          color: grupo.color,
+                          fontSize: '0.7rem',
+                          fontWeight: 900,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {formatCurrency(
+                          getPaymentValue(
+                            titulo,
+                            grupo.status,
+                          ),
+                        )}
+                      </Typography>
+                    </Box>
+                  ),
+                )}
+              </Box>
             </Box>
           ))
         )}
@@ -2087,17 +2384,65 @@ export function SummarySection({
   const comprasValor =
     safeNumber(kpis.compras?.valor_nota);
 
-  const pagamentosPago =
-    safeNumber(kpis.pagamentos?.valor_pago);
+  const pagamentosKpis =
+    kpis.pagamentos as
+      | PagamentosKpisDetalhados
+      | undefined;
 
-  const pagamentosEmAberto =
-    safeNumber(kpis.pagamentos?.valor_em_aberto);
+  /*
+   * O card usa os mesmos títulos e a mesma classificação
+   * da tooltip. Isso impede divergência entre os dois.
+   */
+  const pagamentosResumo =
+    buildPaymentSummary(pagamentos);
+
+  const possuiDetalhesPagamentos =
+    pagamentos.length > 0;
+
+  const pagamentosRecebidoEmConta =
+    possuiDetalhesPagamentos
+      ? pagamentosResumo.valorRecebidoEmConta
+      : safeNumber(
+          pagamentosKpis?.valor_recebido_em_conta,
+        );
+
+  const pagamentosCompensado =
+    possuiDetalhesPagamentos
+      ? pagamentosResumo.valorCompensado
+      : safeNumber(
+          pagamentosKpis?.valor_compensado,
+        );
 
   const pagamentosVencido =
-    safeNumber(kpis.pagamentos?.valor_vencido);
+    possuiDetalhesPagamentos
+      ? pagamentosResumo.valorVencido
+      : safeNumber(
+          pagamentosKpis?.valor_vencido,
+        );
+
+  const pagamentosSaldoAberto =
+    possuiDetalhesPagamentos
+      ? pagamentosResumo.saldoAReceber
+      : safeNumber(
+          pagamentosKpis?.saldo_aberto ??
+          safeNumber(
+            pagamentosKpis?.valor_em_aberto,
+          ) + pagamentosVencido,
+        );
 
   const pagamentosTitulos =
-    safeNumber(kpis.pagamentos?.quantidade_titulos);
+    possuiDetalhesPagamentos
+      ? pagamentosResumo.quantidadeTitulos
+      : safeNumber(
+          pagamentosKpis?.quantidade_titulos,
+        );
+
+  const pagamentosCaption =
+    pagamentosVencido > 0
+      ? `${pagamentosTitulos} títulos · ${formatCurrency(
+          pagamentosVencido,
+        )} vencido`
+      : `${pagamentosTitulos} títulos · sem valores vencidos`;
 
   /*
    * CUSTOS POR ORIGEM
@@ -2523,11 +2868,35 @@ export function SummarySection({
               />
             }
             arrow
-            placement="top"
-            enterDelay={250}
-            leaveDelay={250}
+            placement="bottom-start"
+            enterDelay={180}
+            leaveDelay={180}
             disableInteractive={false}
-            slotProps={paymentsTooltipSlotProps}
+            slotProps={{
+              ...paymentsTooltipSlotProps,
+              popper: {
+                modifiers: [
+                  {
+                    name: 'offset',
+                    options: { offset: [0, 10] },
+                  },
+                  {
+                    name: 'preventOverflow',
+                    options: { padding: 12 },
+                  },
+                  {
+                    name: 'flip',
+                    options: {
+                      fallbackPlacements: [
+                        'bottom-start',
+                        'bottom',
+                        'top-start',
+                      ],
+                    },
+                  },
+                ],
+              },
+            }}
           >
             <Box
               sx={{
@@ -2540,25 +2909,22 @@ export function SummarySection({
                 title="Recebimentos"
                 items={[
                   {
-                    label: 'Recebido',
-                    value: pagamentosPago,
+                    label: 'Em conta',
+                    value: pagamentosRecebidoEmConta,
                     color: '#16a34a',
                   },
                   {
-                    label: 'A receber',
-                    value: pagamentosEmAberto,
-                    color: '#d97706',
+                    label: 'Compensado',
+                    value: pagamentosCompensado,
+                    color: '#7c3aed',
                   },
                   {
-                    label: 'Vencido',
-                    value: pagamentosVencido,
-                    color:
-                      pagamentosVencido > 0
-                        ? '#dc2626'
-                        : '#94a3b8',
+                    label: 'A receber',
+                    value: pagamentosSaldoAberto,
+                    color: '#d97706',
                   },
                 ]}
-                caption={`${pagamentosTitulos} títulos`}
+                caption={pagamentosCaption}
                 icon={
                   <AccountBalanceWalletOutlinedIcon />
                 }
