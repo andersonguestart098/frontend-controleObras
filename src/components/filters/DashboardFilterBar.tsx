@@ -7,6 +7,7 @@ import type {
   FormEvent,
 } from 'react';
 
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import {
   Box,
@@ -15,7 +16,6 @@ import {
   CardContent,
   CircularProgress,
   TextField,
-  Typography,
 } from '@mui/material';
 
 import type {
@@ -29,6 +29,8 @@ interface DashboardFilterBarProps {
   onApply: (
     filters: DashboardFilters,
   ) => void;
+
+  onLogout: () => void;
 }
 
 const inputSx = {
@@ -96,6 +98,7 @@ export function DashboardFilterBar({
   initialFilters,
   loading = false,
   onApply,
+  onLogout,
 }: DashboardFilterBarProps) {
   const [draft, setDraft] =
     useState<DashboardFilters>(
@@ -333,38 +336,44 @@ export function DashboardFilterBar({
               : 'Atualizar dashboard'}
           </Button>
 
-          <Box
+          <Button
+            type="button"
+            onClick={onLogout}
+            startIcon={<LogoutRoundedIcon />}
             sx={{
               ml: {
                 xs: 0,
                 lg: 'auto',
               },
 
-              display: {
-                xs: 'none',
-                lg: 'block',
+              height: 58,
+
+              px: 2.4,
+
+              borderRadius: 2.5,
+
+              textTransform: 'none',
+
+              color: '#64748b',
+
+              fontSize: '0.95rem',
+              fontWeight: 700,
+
+              border: '1px solid rgba(148, 163, 184, 0.34)',
+
+              '&:hover': {
+                backgroundColor: 'rgba(148, 163, 184, 0.10)',
+                borderColor: 'rgba(100, 116, 139, 0.55)',
               },
 
-              maxWidth: 260,
-              pr: 1,
+              width: {
+                xs: '100%',
+                sm: 'auto',
+              },
             }}
           >
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-
-                color: '#64748b',
-
-                fontWeight: 600,
-                lineHeight: 1.5,
-              }}
-            >
-              Selecione o projeto e, opcionalmente,
-              defina um período para atualizar os
-              indicadores.
-            </Typography>
-          </Box>
+            Sair
+          </Button>
         </Box>
       </CardContent>
     </Card>

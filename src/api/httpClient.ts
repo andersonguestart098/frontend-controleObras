@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { getAccessToken } from '@/auth/authStorage';
+
 const baseURL =
   import.meta.env.VITE_API_BASE_URL ??
   'https://api-controle-obras-cemear-6cbd941bea73.herokuapp.com/api/v1';
@@ -18,14 +20,16 @@ export const httpClient = axios.create({
 
 httpClient.interceptors.request.use(
   (config) => {
-    if (apiKey) {
+    const accessToken = getAccessToken();
+
+    if (accessToken) {
       config.headers.set(
-        'X-API-Key',
-        apiKey,
+        "Authorization",
+        `Bearer ${accessToken}`,
       );
     }
 
     return config;
   },
-  (error) => Promise.reject(error),
 );
+

@@ -241,6 +241,28 @@ function sumTaxGroups(
   );
 }
 
+function formatPaymentDate(
+  value: string | null | undefined,
+): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const isoDate = value.slice(0, 10);
+
+  /*
+   * Meio-dia evita mudança de data
+   * causada por timezone.
+   */
+  const parsedDate = new Date(
+    `${isoDate}T12:00:00`,
+  );
+
+  return Number.isNaN(parsedDate.getTime())
+    ? null
+    : new Intl.DateTimeFormat('pt-BR').format(parsedDate);
+}
+
 function safeRatio(
   numerator: number,
   denominator: number,
@@ -1129,10 +1151,20 @@ function getPaymentExplanation(
   titulo: PagamentoTituloDetalhado,
   grupo: PagamentoGrupo,
 ): string {
+  const vencimento = formatPaymentDate(titulo.dtvenc);
+  const vencimentoDetalhe = vencimento
+    ? `Venc. ${vencimento}`
+    : null;
+
   if (grupo === 'RECEBIDO_EM_CONTA') {
-    return titulo.nubco != null
-      ? `Entrada bancária confirmada · NUBCO ${titulo.nubco}`
-      : 'Classificado como entrada efetiva de dinheiro';
+    const detalhes = [
+      titulo.nubco != null
+        ? `Entrada bancária confirmada · NUBCO ${titulo.nubco}`
+        : 'Classificado como entrada efetiva de dinheiro',
+      vencimentoDetalhe,
+    ].filter(Boolean);
+
+    return detalhes.join(' · ');
   }
 
   if (grupo === 'COMPENSADO') {
@@ -1144,23 +1176,37 @@ function getPaymentExplanation(
       titulo.tipacerto
         ? `TIPACERTO ${titulo.tipacerto}`
         : null,
+      vencimentoDetalhe,
     ].filter(Boolean);
 
     return detalhes.join(' · ');
   }
 
   if (grupo === 'VENCIDO') {
-    return 'Ainda não liquidado e com vencimento ultrapassado';
+    const detalhes = [
+      'Ainda não liquidado e com vencimento ultrapassado',
+      vencimentoDetalhe,
+    ].filter(Boolean);
+
+    return detalhes.join(' · ');
   }
 
   if (grupo === 'EM_ABERTO') {
-    return 'Ainda não liquidado e dentro do prazo';
+    const detalhes = [
+      'Ainda não liquidado e dentro do prazo',
+      vencimentoDetalhe,
+    ].filter(Boolean);
+
+    return detalhes.join(' · ');
   }
 
-  return (
+  const detalhes = [
     titulo.forma_liquidacao ||
-    'Baixa registrada por outra modalidade'
-  );
+      'Baixa registrada por outra modalidade',
+    vencimentoDetalhe,
+  ].filter(Boolean);
+
+  return detalhes.join(' · ');
 }
 
 function PaymentsBreakdownTooltip({

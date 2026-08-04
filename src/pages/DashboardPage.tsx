@@ -1,7 +1,10 @@
 import { useState } from 'react';
 
+import { useNavigate } from 'react-router';
+
 import {
   Alert,
+  Avatar,
   Box,
   Card,
   CardContent,
@@ -12,6 +15,12 @@ import {
 } from '@mui/material';
 
 import logoCemear from '@/assets/logo cem.png';
+import { logout } from '@/api/authApi';
+import {
+  clearAuthSession,
+  getRefreshToken,
+  getStoredUser,
+} from '@/auth/authStorage';
 import { TaxSummaryTable } from '@/components/cards/TaxSummaryTable';
 import { RemittanceProgressChart } from '@/components/charts/RemittanceProgressChart';
 import { SalesCompositionChart } from '@/components/charts/SalesCompositionChart';
@@ -351,6 +360,19 @@ function SummarySectionSkeleton() {
 
 
 export function DashboardPage() {
+  const navigate = useNavigate();
+
+  const currentUser = getStoredUser();
+
+  const userInitials = currentUser?.name
+    ? currentUser.name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('')
+    : '?';
+
   const [filters, setFilters] =
     useState<DashboardFilters>(
       initialFilters,
@@ -419,6 +441,24 @@ export function DashboardPage() {
       pagamentos.refetch(),
       vexpenses.refetch(),
     ]);
+  }
+
+  async function handleLogout() {
+    const refreshToken = getRefreshToken();
+
+    try {
+      if (refreshToken) {
+        await logout(refreshToken);
+      }
+    } catch {
+      // Sessão local será limpa de qualquer forma.
+    } finally {
+      clearAuthSession();
+
+      navigate('/login', {
+        replace: true,
+      });
+    }
   }
 
   return (
@@ -517,125 +557,207 @@ export function DashboardPage() {
               ...fadeUpSx(0),
             }}
           >
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                variant="overline"
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+
+                gap: {
+                  xs: 1.8,
+                  sm: 2.2,
+                  md: 2.8,
+                },
+
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              <Avatar
+                src={
+                  currentUser?.avatar_url ??
+                  undefined
+                }
+                alt={
+                  currentUser?.name ??
+                  'Usuário'
+                }
                 sx={{
-                  display: 'block',
+                  flexShrink: 0,
 
-                  color:
-                    'rgba(255, 255, 255, 0.72)',
-
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.16em',
-                }}
-              >
-                Controle de obras • Sankhya
-              </Typography>
-
-              <Typography
-                component="h1"
-                sx={{
-                  mt: 0.8,
-
-                  fontSize: {
-                    xs: '1.9rem',
-                    sm: '2.3rem',
-                    md: '2.65rem',
+                  width: {
+                    xs: 90,
+                    sm: 108,
+                    md: 134,
                   },
 
-                  lineHeight: 1.08,
-                  fontWeight: 900,
-                  letterSpacing: '-0.04em',
+                  height: {
+                    xs: 90,
+                    sm: 108,
+                    md: 134,
+                  },
+
+                  color: '#ffffff',
+
+                  fontSize: {
+                    xs: '1.5rem',
+                    md: '2rem',
+                  },
+
+                  fontWeight: 850,
+
+                  border:
+                    '5px solid rgba(255, 255, 255, 0.18)',
 
                   background:
-                    'linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)',
+                    'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
 
-                  WebkitBackgroundClip: 'text',
+                  boxShadow:
+                    '0 14px 32px rgba(0, 0, 0, 0.25)',
 
-                  WebkitTextFillColor:
-                    'transparent',
+                  transition:
+                    'transform 180ms ease, ' +
+                    'box-shadow 180ms ease',
 
-                  backgroundClip: 'text',
-                }}
-              >
-                <Box
-                  component="span"
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 1.2,
-                  }}
-                >
-                  <Box component="span">
-                    Dashboard -
-                  </Box>
+                  '&:hover': {
+                    transform: 'scale(1.045)',
 
-                  {isDashboardLoading ? (
-                    <Skeleton
-                      component="span"
-                      variant="rounded"
-                      animation="wave"
-                      sx={{
-                        display: 'inline-block',
-
-                        width: {
-                          xs: 220,
-                          sm: 340,
-                          md: 430,
-                        },
-
-                        height: '0.92em',
-
-                        borderRadius: 1.2,
-
-                        backgroundColor:
-                          'rgba(255, 255, 255, 0.18)',
-
-                        WebkitTextFillColor: 'initial',
-
-                        '&::after': {
-                          background:
-                            'linear-gradient(' +
-                            '90deg, ' +
-                            'transparent, ' +
-                            'rgba(255, 255, 255, 0.18), ' +
-                            'transparent' +
-                            ')',
-                        },
-                      }}
-                    />
-                  ) : (
-                    <Box component="span">
-                      {projectName}
-                    </Box>
-                  )}
-                </Box>
-              </Typography>
-
-              <Typography
-                component="p"
-                sx={{
-                  mt: 1.4,
-                  maxWidth: 760,
-
-                  color:
-                    'rgba(255, 255, 255, 0.72)',
-
-                  fontSize: {
-                    xs: '0.92rem',
-                    md: '1rem',
+                    boxShadow:
+                      '0 18px 38px rgba(0, 0, 0, 0.32)',
                   },
 
-                  fontWeight: 500,
+                  '& img': {
+                    objectFit: 'cover',
+                  },
                 }}
               >
-                Vendas, remessas futuras, custos,
-                tributos e comissão consolidados por
-                projeto.
-              </Typography>
+                {userInitials}
+              </Avatar>
+
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                <Typography
+                  variant="overline"
+                  sx={{
+                    display: 'block',
+
+                    color:
+                      'rgba(255, 255, 255, 0.72)',
+
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.16em',
+                  }}
+                >
+                  Controle de obras • Sankhya
+                </Typography>
+
+                <Typography
+                  component="h1"
+                  sx={{
+                    mt: 0.8,
+
+                    fontSize: {
+                      xs: '1.65rem',
+                      sm: '2.15rem',
+                      md: '2.65rem',
+                    },
+
+                    lineHeight: 1.08,
+                    fontWeight: 900,
+                    letterSpacing: '-0.04em',
+
+                    background:
+                      'linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)',
+
+                    WebkitBackgroundClip: 'text',
+
+                    WebkitTextFillColor:
+                      'transparent',
+
+                    backgroundClip: 'text',
+                  }}
+                >
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 1.2,
+                    }}
+                  >
+                    <Box component="span">
+                      Dashboard -
+                    </Box>
+
+                    {isDashboardLoading ? (
+                      <Skeleton
+                        component="span"
+                        variant="rounded"
+                        animation="wave"
+                        sx={{
+                          display: 'inline-block',
+
+                          width: {
+                            xs: 190,
+                            sm: 340,
+                            md: 430,
+                          },
+
+                          height: '0.92em',
+
+                          borderRadius: 1.2,
+
+                          backgroundColor:
+                            'rgba(255, 255, 255, 0.18)',
+
+                          WebkitTextFillColor: 'initial',
+
+                          '&::after': {
+                            background:
+                              'linear-gradient(' +
+                              '90deg, ' +
+                              'transparent, ' +
+                              'rgba(255, 255, 255, 0.18), ' +
+                              'transparent' +
+                              ')',
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Box component="span">
+                        {projectName}
+                      </Box>
+                    )}
+                  </Box>
+                </Typography>
+
+                <Typography
+                  component="p"
+                  sx={{
+                    mt: 1.4,
+                    maxWidth: 760,
+
+                    color:
+                      'rgba(255, 255, 255, 0.72)',
+
+                    fontSize: {
+                      xs: '0.86rem',
+                      md: '1rem',
+                    },
+
+                    fontWeight: 500,
+                  }}
+                >
+                  Vendas, remessas futuras, custos,
+                  tributos e comissão consolidados por
+                  projeto.
+                </Typography>
+              </Box>
             </Box>
 
             <Box
@@ -714,6 +836,9 @@ export function DashboardPage() {
               initialFilters={filters}
               loading={isUpdating}
               onApply={handleApplyFilters}
+              onLogout={() => {
+                void handleLogout();
+              }}
             />
           </Box>
 

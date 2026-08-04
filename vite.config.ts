@@ -6,6 +6,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname,
+      'lottie-react': 'lottie-react/build/index.es.js',
     },
   },
   server: {
