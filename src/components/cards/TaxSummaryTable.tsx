@@ -1259,10 +1259,11 @@ export function TaxSummaryTable({
    * - Devoluções
    * + Interno Obras
    * - Devoluções Interno Obras
-   * + Remessa futura
    *
-   * Bonificações e Remessa transporte não
-   * entram na comissão.
+   * Bonificações, Remessa transporte e Remessa
+   * futura não entram na comissão: a comissão da
+   * Remessa futura já está contada dentro de
+   * Vendas, então somar de novo duplicava o valor.
    */
 
   const tributosConsolidados =
@@ -1275,7 +1276,10 @@ export function TaxSummaryTable({
 
   const comissaoConsolidada =
     Number(
-      impostosConsolidado.comissao.toFixed(2),
+      (
+        impostosConsolidado.comissao -
+        impostosRemessaFutura.comissao
+      ).toFixed(2),
     );
 
   /*
@@ -1488,8 +1492,7 @@ export function TaxSummaryTable({
       irpjCssl:
         irpjCsslRemessaFutura,
 
-      comissao:
-        impostosRemessaFutura.comissao,
+      comissao: null,
 
       remessa: true,
     },

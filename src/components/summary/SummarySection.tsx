@@ -2646,8 +2646,16 @@ export function SummarySection({
   const totalImpostos =
     roundMoney(impostosConsolidadoGrupo.total_tributos + totalIrpjCssl);
 
+  /*
+   * A comissão da Remessa futura já está contada
+   * dentro de Vendas, então tirar ela daqui evita
+   * duplicar o valor.
+   */
   const totalComissao =
-    roundMoney(impostosConsolidadoGrupo.comissao);
+    roundMoney(
+      impostosConsolidadoGrupo.comissao -
+        impostosRemessaFuturaGrupo.comissao,
+    );
 
   /*
    * RESULTADO CONSOLIDADO
