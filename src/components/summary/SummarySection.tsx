@@ -2647,15 +2647,14 @@ export function SummarySection({
     roundMoney(impostosConsolidadoGrupo.total_tributos + totalIrpjCssl);
 
   /*
-   * A comissão da Remessa futura já está contada
-   * dentro de Vendas, então tirar ela daqui evita
-   * duplicar o valor.
+   * Vendas e Remessa futura vêm de notas
+   * diferentes no backend (tipo_movimento "VENDA"
+   * x "REMESSA" são filtros mutuamente
+   * exclusivos), então somar as duas não duplica
+   * nada — espelha ImpostosAnalytics.build_kpis.
    */
   const totalComissao =
-    roundMoney(
-      impostosConsolidadoGrupo.comissao -
-        impostosRemessaFuturaGrupo.comissao,
-    );
+    roundMoney(impostosConsolidadoGrupo.comissao);
 
   /*
    * RESULTADO CONSOLIDADO

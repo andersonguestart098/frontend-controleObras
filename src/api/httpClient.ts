@@ -1,6 +1,18 @@
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 
-import { getAccessToken } from '@/auth/authStorage';
+import { clearAuthSession, getAccessToken } from '@/auth/authStorage';
+
+/*
+ * Endpoints públicos de autenticação: um 401 aqui
+ * é erro de credencial (mostrado no próprio
+ * formulário), não sessão expirada — não deve
+ * limpar sessão nem redirecionar.
+ */
+const PUBLIC_AUTH_ENDPOINTS = [
+  '/auth/login',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+];
 
 const baseURL =
   import.meta.env.VITE_API_BASE_URL ??
@@ -30,6 +42,37 @@ httpClient.interceptors.request.use(
     }
 
     return config;
+  },
+);
+
+httpClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const requestUrl =
+      isAxiosError(error) && error.config?.url
+        ? error.config.url
+        : '';
+
+    const isPublicAuthRequest =
+      PUBLIC_AUTH_ENDPOINTS.some((endpoint) =>
+        requestUrl.includes(endpoint),
+      );
+
+    if (
+      isAxiosError(error) &&
+      error.response?.status === 401 &&
+      !isPublicAuthRequest
+    ) {
+      clearAuthSession();
+
+      if (
+        window.location.pathname !== '/login'
+      ) {
+        window.location.href = '/login';
+      }
+    }
+
+    return Promise.reject(error);
   },
 );
 

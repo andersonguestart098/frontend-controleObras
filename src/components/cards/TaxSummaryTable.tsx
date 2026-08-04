@@ -1246,24 +1246,25 @@ export function TaxSummaryTable({
   /*
    * TOTAL DAS COLUNAS DE ENCARGOS:
    *
-   * ICMS, PIS, COFINS, IRPJ/CSLL e Tributos:
+   * ICMS, PIS, COFINS, IRPJ/CSLL, Tributos e
+   * Comissão:
    * + Vendas
    * - Devoluções
-   * + Bonificações
+   * + Bonificações (só ICMS/tributos; comissão
+   *   sempre 0)
    * + Interno Obras
    * - Devoluções Interno Obras
    * + Remessa futura
    *
-   * Comissão:
-   * + Vendas
-   * - Devoluções
-   * + Interno Obras
-   * - Devoluções Interno Obras
+   * Vendas e Remessa futura vêm de notas
+   * diferentes (tipo_movimento "VENDA" x
+   * "REMESSA" são filtros mutuamente exclusivos
+   * no backend), então somar as duas não duplica
+   * nada — espelha a fórmula do "consolidado" em
+   * ImpostosAnalytics.build_kpis.
    *
-   * Bonificações, Remessa transporte e Remessa
-   * futura não entram na comissão: a comissão da
-   * Remessa futura já está contada dentro de
-   * Vendas, então somar de novo duplicava o valor.
+   * Remessa transporte não entra em nada disso,
+   * é só informativa.
    */
 
   const tributosConsolidados =
@@ -1276,10 +1277,7 @@ export function TaxSummaryTable({
 
   const comissaoConsolidada =
     Number(
-      (
-        impostosConsolidado.comissao -
-        impostosRemessaFutura.comissao
-      ).toFixed(2),
+      impostosConsolidado.comissao.toFixed(2),
     );
 
   /*
@@ -1492,7 +1490,16 @@ export function TaxSummaryTable({
       irpjCssl:
         irpjCsslRemessaFutura,
 
-      comissao: null,
+      /*
+       * Mostra o valor real da comissão da
+       * Remessa futura (é informativo e vem
+       * calculado à parte pelo backend). Ela só
+       * não entra na soma do Consolidado líquido
+       * — ver comissaoConsolidada acima — porque
+       * essa parcela já está dentro de Vendas.
+       */
+      comissao:
+        impostosRemessaFutura.comissao,
 
       remessa: true,
     },
@@ -1547,7 +1554,7 @@ export function TaxSummaryTable({
         irpjCsslConsolidado,
 
       comissao:
-        impostosConsolidado.comissao,
+        comissaoConsolidada,
 
       consolidated: true,
     },
