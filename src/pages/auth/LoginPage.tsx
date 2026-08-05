@@ -562,7 +562,7 @@ export default function LoginPage() {
               justifyContent: "center",
               alignItems: "center",
               width: "100%",
-              height: "clamp(300px, 50vh, 640px)",
+              height: "clamp(320px, 56vh, 700px)",
             }}
           >
             <Box
@@ -583,7 +583,7 @@ export default function LoginPage() {
                 position: "relative",
                 width: "100%",
                 height: "100%",
-                maxWidth: "clamp(360px, 38vw, 780px)",
+                maxWidth: "clamp(380px, 42vw, 820px)",
 
                 "& svg": {
                   display: "block",
