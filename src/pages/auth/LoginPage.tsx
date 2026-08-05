@@ -323,7 +323,7 @@ export default function LoginPage() {
 
         gridTemplateColumns: {
           xs: "1fr",
-          md: "minmax(0, 1.5fr) minmax(380px, 0.6fr)",
+          md: "minmax(0, 1.5fr) minmax(360px, 0.6fr)",
         },
 
         background:
@@ -443,10 +443,13 @@ export default function LoginPage() {
           alignItems: "center",
           justifyContent: "center",
           px: {
-            md: 5,
-            lg: 8,
+            md: 4,
+            lg: 7,
           },
-          py: 6,
+          py: {
+            md: 4,
+            lg: 6,
+          },
         }}
       >
         {/* blobs animados do banner (mesma paleta gradiente) */}
@@ -505,24 +508,22 @@ export default function LoginPage() {
         />
 
         <Stack
-          spacing={3}
+          spacing={{ md: 2.25, lg: 3 }}
           sx={{
             position: "relative",
             zIndex: 1,
             width: "100%",
-            maxWidth: 720,
+            maxWidth: 660,
           }}
         >
           <Box>
             <Typography
               component="h1"
               sx={{
-                maxWidth: 680,
-                fontSize: {
-                  md: "2.6rem",
-                  lg: "3.6rem",
-                },
-                lineHeight: 1.08,
+                maxWidth: 640,
+                fontSize:
+                  "clamp(1.85rem, 1.1vw + 1.45rem, 3.4rem)",
+                lineHeight: 1.1,
                 letterSpacing: "-0.035em",
                 fontWeight: 850,
 
@@ -539,15 +540,13 @@ export default function LoginPage() {
 
             <Typography
               sx={{
-                maxWidth: 620,
-                mt: 2.5,
+                maxWidth: 560,
+                mt: { md: 1.5, lg: 2.25 },
                 color:
                   "rgba(255, 255, 255, 0.74)",
-                fontSize: {
-                  md: "1.14rem",
-                  lg: "1.28rem",
-                },
-                lineHeight: 1.7,
+                fontSize:
+                  "clamp(0.92rem, 0.35vw + 0.82rem, 1.24rem)",
+                lineHeight: 1.65,
               }}
             >
               Acompanhe vendas, custos, pagamentos,
@@ -562,16 +561,14 @@ export default function LoginPage() {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              minHeight: {
-                md: 380,
-                lg: 480,
-              },
+              width: "100%",
+              height: "clamp(190px, 32vh, 400px)",
             }}
           >
             <Box
               sx={{
                 position: "absolute",
-                inset: "12% 8%",
+                inset: "10% 8%",
                 borderRadius: "50%",
                 background:
                   "rgba(255, 255, 255, 0.055)",
@@ -585,13 +582,13 @@ export default function LoginPage() {
               sx={{
                 position: "relative",
                 width: "100%",
-                maxWidth: {
-                  md: 500,
-                  lg: 640,
-                },
+                height: "100%",
+                maxWidth: "clamp(280px, 24vw, 560px)",
 
                 "& svg": {
                   display: "block",
+                  width: "100%",
+                  height: "100%",
                 },
               }}
             >
@@ -633,9 +630,8 @@ export default function LoginPage() {
 
           py: {
             xs: 5,
-            md: 7,
+            md: 6,
           },
-
         }}
       >
         {/* blobs animados do formulário (cinza sutil, um tom + escuro) */}
@@ -680,10 +676,10 @@ export default function LoginPage() {
             position: "relative",
             zIndex: 1,
             width: "100%",
-            maxWidth: 340,
+            maxWidth: { xs: 360, md: 320, xl: 360 },
             transform: {
               xs: "none",
-              md: "translateX(-40px)",
+              md: "translateX(-24px)",
             },
           }}
         >
@@ -695,14 +691,14 @@ export default function LoginPage() {
               display: "block",
               width: {
                 xs: 128,
-                sm: 145,
+                sm: 140,
               },
-              maxHeight: 60,
+              maxHeight: 56,
               objectFit: "contain",
               objectPosition: "left center",
               mb: {
-                xs: 3,
-                md: 3.5,
+                xs: 2.5,
+                md: 3,
               },
             }}
           />
@@ -711,10 +707,8 @@ export default function LoginPage() {
             component="h2"
             sx={{
               color: "#122033",
-              fontSize: {
-                xs: "1.7rem",
-                sm: "1.95rem",
-              },
+              fontSize:
+                "clamp(1.55rem, 0.6vw + 1.2rem, 2rem)",
               lineHeight: 1.14,
               letterSpacing: "-0.035em",
               fontWeight: 850,
@@ -725,11 +719,11 @@ export default function LoginPage() {
 
           <Typography
             sx={{
-              mt: 1,
-              mb: 3.5,
+              mt: 0.75,
+              mb: { xs: 3, md: 3.25 },
               color: "#718096",
-              lineHeight: 1.6,
-              fontSize: "0.9rem",
+              lineHeight: 1.55,
+              fontSize: "0.88rem",
             }}
           >
             Entre com suas credenciais para acessar o
@@ -793,7 +787,7 @@ export default function LoginPage() {
                         <EmailOutlined
                           sx={{
                             color: "#94a3b8",
-                            fontSize: 21,
+                            fontSize: 20,
                           }}
                         />
                       </InputAdornment>
@@ -802,7 +796,7 @@ export default function LoginPage() {
                 }}
                 sx={{
                   "& .MuiOutlinedInput-root": {
-                    minHeight: 52,
+                    minHeight: 50,
                     borderRadius: 2.5,
                     backgroundColor: "transparent",
 
@@ -856,7 +850,7 @@ export default function LoginPage() {
                         <LockOutlined
                           sx={{
                             color: "#94a3b8",
-                            fontSize: 21,
+                            fontSize: 20,
                           }}
                         />
                       </InputAdornment>
@@ -891,7 +885,7 @@ export default function LoginPage() {
                 }}
                 sx={{
                   "& .MuiOutlinedInput-root": {
-                    minHeight: 52,
+                    minHeight: 50,
                     borderRadius: 2.5,
                     backgroundColor: "transparent",
 
@@ -921,6 +915,7 @@ export default function LoginPage() {
                   alignItems: "center",
                   justifyContent: "space-between",
                   flexWrap: "wrap",
+                  gap: 0.5,
                   mt: "-8px !important",
                 }}
               >
@@ -929,6 +924,7 @@ export default function LoginPage() {
                     <Checkbox
                       checked={rememberEmail}
                       disabled={loading}
+                      size="small"
                       onChange={(event) => {
                         setRememberEmail(
                           event.target.checked,
@@ -948,7 +944,7 @@ export default function LoginPage() {
                     m: 0,
 
                     "& .MuiFormControlLabel-label": {
-                      fontSize: "0.85rem",
+                      fontSize: "0.82rem",
                       fontWeight: 600,
                       color: "#64748b",
                     },
@@ -965,6 +961,7 @@ export default function LoginPage() {
                     minWidth: "auto",
                     p: 0,
                     color: "#0095FF",
+                    fontSize: "0.82rem",
                     fontWeight: 700,
                     textTransform: "none",
 
@@ -991,8 +988,8 @@ export default function LoginPage() {
                     : undefined
                 }
                 sx={{
-                  minHeight: 50,
-                  mt: "8px !important",
+                  minHeight: 48,
+                  mt: "6px !important",
                   borderRadius: 2.5,
                   color: "#ffffff",
                   fontSize: "0.95rem",
@@ -1030,7 +1027,7 @@ export default function LoginPage() {
             direction="row"
             spacing={1}
             sx={{
-              mt: 5,
+              mt: { xs: 4, md: 3.5 },
               color: "#94a3b8",
               alignItems: "center",
               justifyContent: "center",
@@ -1046,6 +1043,7 @@ export default function LoginPage() {
               variant="body2"
               sx={{
                 fontWeight: 500,
+                fontSize: "0.82rem",
               }}
             >
               Ambiente seguro e acesso monitorado
