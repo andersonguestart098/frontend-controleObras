@@ -441,7 +441,7 @@ export default function LoginPage() {
           minHeight: "100vh",
           overflow: "hidden",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "flex-start",
           px: {
             md: 4,
             lg: 7,
@@ -514,6 +514,10 @@ export default function LoginPage() {
             zIndex: 1,
             width: "100%",
             maxWidth: 760,
+            transform: {
+              md: "translateX(72px)",
+              lg: "translateX(96px)",
+            },
           }}
         >
           <Box>
@@ -679,7 +683,8 @@ export default function LoginPage() {
             maxWidth: { xs: 360, md: 320, xl: 360 },
             transform: {
               xs: "none",
-              md: "translateX(-24px)",
+              md: "translateX(-40px)",
+              lg: "translateX(-56px)",
             },
           }}
         >
