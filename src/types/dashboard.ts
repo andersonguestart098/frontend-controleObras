@@ -162,6 +162,57 @@ export interface PagamentosResponse {
   pagamentos: PagamentoTitulo[];
 }
 
+export interface CompraItemDetalhado {
+  sequencia: number;
+  codprod: number;
+  descrprod: string;
+  unidade: string;
+  controle: string;
+
+  qtdneg: number;
+  vlrunit: number;
+  vlrtot: number;
+  vlrdesc: number;
+  vlr_item_liquido: number;
+
+  cussemicm: number;
+  custo_total_item: number;
+}
+
+export interface CompraPedidoDetalhado {
+  nunota: number;
+  numnota: number;
+  dtneg: string | null;
+
+  codproj: number;
+  projeto: string;
+
+  codparc: number;
+  parceiro: string;
+  cgc_cpf: string;
+
+  codtipoper: number;
+  descroper: string;
+  tipo_movimento: string;
+
+  codtipvenda: number;
+  tipo_negociacao: string;
+
+  vlrnota: number;
+  vlricms: number;
+  vlrpis: number;
+  vlrcofins: number;
+
+  itens: CompraItemDetalhado[];
+}
+
+export interface ComprasDetalhesResponse {
+  filters: DashboardFilters;
+  count_compras: number;
+  count_itens: number;
+  compras: CompraPedidoDetalhado[];
+}
+
 export interface RemessaFuturaKpis {
   total_faturamento: number;
   total_entregue: number;

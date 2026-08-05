@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { keyframes } from '@mui/material/styles';
 
@@ -8,6 +9,7 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import {
   Box,
   Card,
@@ -19,6 +21,7 @@ import {
 
 import { RollingCurrency } from '@/components/common/RollingCurrency';
 import type {
+  CompraPedidoDetalhado,
   DashboardKpis,
   ImpostoGrupoKpis,
   PagamentoTitulo,
@@ -59,6 +62,38 @@ interface PagamentosKpisDetalhados {
 interface SummarySectionProps {
   kpis: DashboardKpis;
   pagamentos?: PagamentoTituloDetalhado[];
+  comprasPedidos?: CompraPedidoDetalhado[];
+}
+
+function ordenarPedidosPorData(
+  pedidos: CompraPedidoDetalhado[],
+): CompraPedidoDetalhado[] {
+  return [...pedidos].sort(
+    (a, b) =>
+      (b.dtneg ?? '').localeCompare(
+        a.dtneg ?? '',
+      ),
+  );
+}
+
+function formatDataCurta(
+  dtneg: string | null,
+): string {
+  if (!dtneg) {
+    return '—';
+  }
+
+  const data = new Date(dtneg);
+
+  if (Number.isNaN(data.getTime())) {
+    return '—';
+  }
+
+  return data.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
 interface SingleMetricProps {
@@ -1593,6 +1628,359 @@ function PaymentsBreakdownTooltip({
   );
 }
 
+function ComprasBreakdownTooltip({
+  pedidos,
+}: {
+  pedidos: CompraPedidoDetalhado[];
+}) {
+  const [
+    pedidoExpandido,
+    setPedidoExpandido,
+  ] = useState<number | null>(null);
+
+  const totalComprado = pedidos.reduce(
+    (acumulado, pedido) =>
+      acumulado + pedido.vlrnota,
+    0,
+  );
+
+  return (
+    <Box
+      sx={{
+        width: 420,
+        maxWidth: 'calc(100vw - 24px)',
+        maxHeight: 'calc(100vh - 32px)',
+        display: 'flex',
+        flexDirection: 'column',
+        p: 0.4,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              color: '#94a3b8',
+              fontSize: '0.63rem',
+              fontWeight: 900,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Pedidos de compra e materiais
+          </Typography>
+
+          <Typography
+            sx={{
+              mt: 0.15,
+              color: '#475569',
+              fontSize: '0.66rem',
+              fontWeight: 700,
+              lineHeight: 1.3,
+            }}
+          >
+            Clique em um pedido para ver os itens.
+          </Typography>
+        </Box>
+
+        <Chip
+          label={`${pedidos.length} pedidos`}
+          size="small"
+          sx={{
+            height: 21,
+            flexShrink: 0,
+            color: '#475569',
+            backgroundColor:
+              'rgba(148, 163, 184, 0.10)',
+            fontSize: '0.6rem',
+            fontWeight: 800,
+          }}
+        />
+      </Box>
+
+      <Typography
+        sx={{
+          mt: 0.65,
+          color: '#94a3b8',
+          fontSize: '0.59rem',
+          fontWeight: 700,
+          textAlign: 'right',
+        }}
+      >
+        Total comprado: {formatCurrency(totalComprado)}
+      </Typography>
+
+      <Box
+        sx={{
+          mt: 0.75,
+          pt: 0.7,
+          minHeight: 0,
+          maxHeight: 320,
+          overflowY: 'auto',
+          pr: 0.4,
+          borderTop:
+            '1px solid rgba(148, 163, 184, 0.20)',
+          scrollbarWidth: 'thin',
+          scrollbarColor:
+            'rgba(100, 116, 139, 0.42) transparent',
+          '&::-webkit-scrollbar': {
+            width: 6,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            borderRadius: 99,
+            backgroundColor:
+              'rgba(100, 116, 139, 0.42)',
+          },
+        }}
+      >
+        {pedidos.length === 0 ? (
+          <Typography
+            sx={{
+              py: 1,
+              color: '#94a3b8',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              textAlign: 'center',
+            }}
+          >
+            Nenhum pedido de compra encontrado para os
+            filtros.
+          </Typography>
+        ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0.5,
+            }}
+          >
+            {pedidos.map((pedido) => {
+              const expandido =
+                pedidoExpandido ===
+                pedido.nunota;
+
+              return (
+                <Box
+                  key={pedido.nunota}
+                  sx={{
+                    borderRadius: 1.4,
+                    backgroundColor:
+                      'rgba(13, 148, 136, 0.045)',
+                    border:
+                      '1px solid rgba(13, 148, 136, 0.14)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setPedidoExpandido(
+                        (current) =>
+                          current ===
+                          pedido.nunota
+                            ? null
+                            : pedido.nunota,
+                      );
+                    }}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key !== 'Enter' &&
+                        event.key !== ' '
+                      ) {
+                        return;
+                      }
+
+                      event.preventDefault();
+
+                      setPedidoExpandido(
+                        (current) =>
+                          current ===
+                          pedido.nunota
+                            ? null
+                            : pedido.nunota,
+                      );
+                    }}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'auto minmax(0, 1fr) auto',
+                      alignItems: 'center',
+                      gap: 0.85,
+                      px: 0.85,
+                      py: 0.65,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor:
+                          'rgba(13, 148, 136, 0.08)',
+                      },
+                    }}
+                  >
+                    <KeyboardArrowDownRoundedIcon
+                      sx={{
+                        fontSize: 18,
+                        color: '#0d9488',
+                        transition:
+                          'transform 160ms ease',
+                        transform: expandido
+                          ? 'rotate(0deg)'
+                          : 'rotate(-90deg)',
+                      }}
+                    />
+
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography
+                        noWrap
+                        title={
+                          pedido.parceiro ??
+                          undefined
+                        }
+                        sx={{
+                          color: '#334155',
+                          fontSize: '0.67rem',
+                          fontWeight: 850,
+                        }}
+                      >
+                        {pedido.parceiro ||
+                          'Fornecedor não informado'}
+                      </Typography>
+
+                      <Typography
+                        noWrap
+                        sx={{
+                          mt: 0.1,
+                          color: '#94a3b8',
+                          fontSize: '0.59rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        NF {pedido.numnota}
+                        {' · '}
+                        {formatDataCurta(
+                          pedido.dtneg,
+                        )}
+                        {' · '}
+                        {pedido.itens.length}{' '}
+                        {pedido.itens.length === 1
+                          ? 'item'
+                          : 'itens'}
+                      </Typography>
+                    </Box>
+
+                    <Typography
+                      sx={{
+                        color: '#0d9488',
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {formatCurrency(
+                        pedido.vlrnota,
+                      )}
+                    </Typography>
+                  </Box>
+
+                  {expandido ? (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 0.4,
+                        px: 0.85,
+                        pb: 0.7,
+                        pt: 0.1,
+                      }}
+                    >
+                      {pedido.itens.map(
+                        (item) => (
+                          <Box
+                            key={`${pedido.nunota}-${item.sequencia}`}
+                            sx={{
+                              display: 'grid',
+                              gridTemplateColumns:
+                                'minmax(0, 1fr) auto',
+                              alignItems: 'center',
+                              gap: 1,
+                              px: 0.75,
+                              py: 0.5,
+                              borderRadius: 1.2,
+                              backgroundColor:
+                                '#ffffff',
+                              border:
+                                '1px solid rgba(148, 163, 184, 0.16)',
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                minWidth: 0,
+                              }}
+                            >
+                              <Typography
+                                noWrap
+                                title={
+                                  item.descrprod
+                                }
+                                sx={{
+                                  color: '#334155',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 800,
+                                }}
+                              >
+                                {item.descrprod}
+                              </Typography>
+
+                              <Typography
+                                noWrap
+                                sx={{
+                                  mt: 0.05,
+                                  color: '#94a3b8',
+                                  fontSize: '0.57rem',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {item.qtdneg}{' '}
+                                {item.unidade}
+                                {' × '}
+                                {formatCurrency(
+                                  item.vlrunit,
+                                )}
+                              </Typography>
+                            </Box>
+
+                            <Typography
+                              sx={{
+                                color: '#475569',
+                                fontSize: '0.66rem',
+                                fontWeight: 900,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {formatCurrency(
+                                item.vlr_item_liquido,
+                              )}
+                            </Typography>
+                          </Box>
+                        ),
+                      )}
+                    </Box>
+                  ) : null}
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 function ResultBreakdownTooltip({
   consolidatedValue,
   totalCost,
@@ -2400,6 +2788,7 @@ function ThreeColumnMetric({
 export function SummarySection({
   kpis,
   pagamentos = [],
+  comprasPedidos = [],
 }: SummarySectionProps) {
   /*
    * REMESSAS
@@ -2429,6 +2818,9 @@ export function SummarySection({
 
   const comprasValor =
     safeNumber(kpis.compras?.valor_nota);
+
+  const pedidosCompra =
+    ordenarPedidosPorData(comprasPedidos);
 
   const pagamentosKpis =
     kpis.pagamentos as
@@ -2988,16 +3380,62 @@ export function SummarySection({
           </Tooltip>
 
           {/* COMPRAS */}
-          <SingleMetric
-            title="Compras"
-            label="Valor nota"
-            value={comprasValor}
-            color="#0d9488"
-            caption="Notas de compra do projeto"
-            icon={<ShoppingCartOutlinedIcon />}
-            iconColor="#0d9488"
-            backgroundColor="rgba(13, 148, 136, 0.04)"
-          />
+          <Tooltip
+            title={
+              <ComprasBreakdownTooltip
+                pedidos={pedidosCompra}
+              />
+            }
+            arrow
+            placement="bottom-start"
+            enterDelay={180}
+            leaveDelay={180}
+            disableInteractive={false}
+            slotProps={{
+              ...paymentsTooltipSlotProps,
+              popper: {
+                modifiers: [
+                  {
+                    name: 'offset',
+                    options: { offset: [0, 10] },
+                  },
+                  {
+                    name: 'preventOverflow',
+                    options: { padding: 12 },
+                  },
+                  {
+                    name: 'flip',
+                    options: {
+                      fallbackPlacements: [
+                        'bottom-start',
+                        'bottom',
+                        'top-start',
+                      ],
+                    },
+                  },
+                ],
+              },
+            }}
+          >
+            <Box
+              sx={{
+                minWidth: 0,
+                height: '100%',
+                cursor: 'help',
+              }}
+            >
+              <SingleMetric
+                title="Compras"
+                label="Valor pedido"
+                value={comprasValor}
+                color="#0d9488"
+                caption="Notas de compra do projeto"
+                icon={<ShoppingCartOutlinedIcon />}
+                iconColor="#0d9488"
+                backgroundColor="rgba(13, 148, 136, 0.04)"
+              />
+            </Box>
+          </Tooltip>
 
           {/* REMESSA: FATURADO, ENTREGUE E SALDO */}
           <ThreeColumnMetric

@@ -1,4 +1,5 @@
 import type {
+  ComprasDetalhesResponse,
   DashboardFilters,
   DashboardResponse,
   PagamentosResponse,
@@ -81,6 +82,33 @@ export async function getPagamentos(
       '/dashboard/pagamentos',
       filters,
       {
+        signal,
+      },
+    );
+
+  return response.data;
+}
+
+export async function getComprasDetalhes(
+  filters: DashboardFilters,
+  signal?: AbortSignal,
+): Promise<ComprasDetalhesResponse> {
+  const response =
+    await httpClient.get<ComprasDetalhesResponse>(
+      '/dashboard/compras',
+      {
+        params: {
+          codproj: filters.codproj,
+
+          dtneg_inicial:
+            filters.dtneg_inicial ??
+            undefined,
+
+          dtneg_final:
+            filters.dtneg_final ??
+            undefined,
+        },
+
         signal,
       },
     );

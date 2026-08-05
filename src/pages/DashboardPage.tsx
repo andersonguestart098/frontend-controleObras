@@ -35,6 +35,7 @@ import { useDashboardKpis } from '@/hooks/useDashboardKpis';
 import { useRemessasControl } from '@/hooks/useRemessasControl';
 import { useMovimentos } from '../hooks/useMovimentos';
 import { usePagamentos } from '@/hooks/usePagamentos';
+import { useComprasDetalhes } from '@/hooks/useComprasDetalhes';
 import { useVExpensesSummary } from '@/hooks/useVExpensesSummary';
 
 
@@ -389,6 +390,9 @@ export function DashboardPage() {
 
   const pagamentos = usePagamentos(filters);
 
+  const comprasDetalhes =
+    useComprasDetalhes(filters);
+
   const vexpenses = useVExpensesSummary({
   codproj: filters.codproj,
 
@@ -406,6 +410,7 @@ export function DashboardPage() {
     remessasControl.isFetching ||
     movimentos.isFetching ||
     pagamentos.isFetching ||
+    comprasDetalhes.isFetching ||
     vexpenses.isFetching;
 
   const isDashboardLoading =
@@ -439,6 +444,7 @@ export function DashboardPage() {
       remessasControl.refetch(),
       movimentos.refetch(),
       pagamentos.refetch(),
+      comprasDetalhes.refetch(),
       vexpenses.refetch(),
     ]);
   }
@@ -891,6 +897,9 @@ export function DashboardPage() {
       kpis={dashboard.data.kpis}
       pagamentos={
         pagamentos.data?.pagamentos ?? []
+      }
+      comprasPedidos={
+        comprasDetalhes.data?.compras ?? []
       }
     />
   )}
