@@ -508,22 +508,22 @@ export default function LoginPage() {
         />
 
         <Stack
-          spacing={{ md: 2.25, lg: 3 }}
+          spacing={{ md: 2.5, lg: 3.5 }}
           sx={{
             position: "relative",
             zIndex: 1,
             width: "100%",
-            maxWidth: 660,
+            maxWidth: 760,
           }}
         >
           <Box>
             <Typography
               component="h1"
               sx={{
-                maxWidth: 640,
+                maxWidth: 720,
                 fontSize:
-                  "clamp(1.85rem, 1.1vw + 1.45rem, 3.4rem)",
-                lineHeight: 1.1,
+                  "clamp(2.1rem, 1.5vw + 1.5rem, 4rem)",
+                lineHeight: 1.08,
                 letterSpacing: "-0.035em",
                 fontWeight: 850,
 
@@ -540,13 +540,13 @@ export default function LoginPage() {
 
             <Typography
               sx={{
-                maxWidth: 560,
-                mt: { md: 1.5, lg: 2.25 },
+                maxWidth: 620,
+                mt: { md: 2, lg: 2.5 },
                 color:
                   "rgba(255, 255, 255, 0.74)",
                 fontSize:
-                  "clamp(0.92rem, 0.35vw + 0.82rem, 1.24rem)",
-                lineHeight: 1.65,
+                  "clamp(1rem, 0.45vw + 0.9rem, 1.4rem)",
+                lineHeight: 1.6,
               }}
             >
               Acompanhe vendas, custos, pagamentos,
@@ -562,7 +562,7 @@ export default function LoginPage() {
               justifyContent: "center",
               alignItems: "center",
               width: "100%",
-              height: "clamp(190px, 32vh, 400px)",
+              height: "clamp(220px, 40vh, 520px)",
             }}
           >
             <Box
@@ -583,7 +583,7 @@ export default function LoginPage() {
                 position: "relative",
                 width: "100%",
                 height: "100%",
-                maxWidth: "clamp(280px, 24vw, 560px)",
+                maxWidth: "clamp(320px, 32vw, 680px)",
 
                 "& svg": {
                   display: "block",
