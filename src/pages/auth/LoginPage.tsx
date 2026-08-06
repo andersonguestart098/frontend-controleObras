@@ -443,8 +443,8 @@ export default function LoginPage() {
           alignItems: "center",
           justifyContent: "flex-start",
           px: {
-            md: 4,
-            lg: 7,
+            md: 5,
+            lg: 9,
           },
           py: {
             md: 4,
@@ -508,16 +508,13 @@ export default function LoginPage() {
         />
 
         <Stack
-          spacing={{ md: 2.5, lg: 3.5 }}
+          spacing={{ md: 2.5, lg: 3.25 }}
           sx={{
             position: "relative",
             zIndex: 1,
             width: "100%",
-            maxWidth: 760,
-            transform: {
-              md: "translateX(72px)",
-              lg: "translateX(96px)",
-            },
+            // limita a largura pra o conteúdo não chegar perto da onda
+            maxWidth: "clamp(420px, 46vw, 760px)",
           }}
         >
           <Box>
@@ -526,7 +523,7 @@ export default function LoginPage() {
               sx={{
                 maxWidth: 720,
                 fontSize:
-                  "clamp(2.1rem, 1.5vw + 1.5rem, 4rem)",
+                  "clamp(2rem, 1.4vw + 1.45rem, 3.8rem)",
                 lineHeight: 1.08,
                 letterSpacing: "-0.035em",
                 fontWeight: 850,
@@ -544,12 +541,12 @@ export default function LoginPage() {
 
             <Typography
               sx={{
-                maxWidth: 620,
+                maxWidth: 600,
                 mt: { md: 2, lg: 2.5 },
                 color:
                   "rgba(255, 255, 255, 0.74)",
                 fontSize:
-                  "clamp(1rem, 0.45vw + 0.9rem, 1.4rem)",
+                  "clamp(0.98rem, 0.4vw + 0.88rem, 1.35rem)",
                 lineHeight: 1.6,
               }}
             >
@@ -566,13 +563,13 @@ export default function LoginPage() {
               justifyContent: "center",
               alignItems: "center",
               width: "100%",
-              height: "clamp(340px, 62vh, 800px)",
+              height: "clamp(300px, 52vh, 640px)",
             }}
           >
             <Box
               sx={{
                 position: "absolute",
-                inset: "4% 12%",
+                inset: "4% 10%",
                 borderRadius: "50%",
                 background:
                   "rgba(255, 255, 255, 0.055)",
@@ -587,7 +584,7 @@ export default function LoginPage() {
                 position: "relative",
                 width: "100%",
                 height: "100%",
-                maxWidth: "clamp(410px, 44vw, 880px)",
+                maxWidth: "clamp(360px, 40vw, 720px)",
 
                 "& svg": {
                   display: "block",
@@ -628,8 +625,8 @@ export default function LoginPage() {
           px: {
             xs: 3,
             sm: 6,
-            md: 4,
-            lg: 6,
+            md: 3,
+            lg: 5,
           },
 
           py: {
@@ -680,12 +677,7 @@ export default function LoginPage() {
             position: "relative",
             zIndex: 1,
             width: "100%",
-            maxWidth: { xs: 360, md: 320, xl: 360 },
-            transform: {
-              xs: "none",
-              md: "translateX(-40px)",
-              lg: "translateX(-56px)",
-            },
+            maxWidth: { xs: 360, md: 330, lg: 350 },
           }}
         >
           <Box
