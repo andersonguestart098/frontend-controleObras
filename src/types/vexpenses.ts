@@ -94,3 +94,69 @@ export interface VExpensesLoadResult {
   linked: boolean;
   data: VExpensesDashboardResponse | null;
 }
+
+export interface VExpensesExpenseApportionmentItem {
+  id: number;
+  integration_id: string | null;
+  expense_id: number;
+  reimbursable_company_id: number;
+  description: string | null;
+  percentage: string;
+  on: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface VExpensesExpenseProjectAllocation {
+  project_id: number;
+  integration_id: string | null;
+  percentage: number;
+  source: string;
+}
+
+export interface VExpensesExpenseItem {
+  id: number;
+  user_id: number | null;
+  expense_id: number;
+  date: string | null;
+  expense_type_id: number | null;
+  payment_method_id: number | null;
+  paying_company_id: number | null;
+  reicept_url: string | null;
+  value: number;
+  title: string | null;
+  validate: string | null;
+  reimbursable: boolean;
+  observation: string | null;
+  rejected: number;
+  on: boolean;
+  original_currency_iso: string | null;
+  converted_value: number | null;
+  converted_currency_iso: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+
+  apportionment?: {
+    data: VExpensesExpenseApportionmentItem[];
+  };
+
+  project_allocation?: VExpensesExpenseProjectAllocation | null;
+}
+
+export interface VExpensesExpensesResponse {
+  pagina: number;
+  itens_por_pagina: number;
+  total_registros: number;
+  total_paginas: number;
+  tem_proxima_pagina: boolean;
+  tem_pagina_anterior: boolean;
+  projeto: VExpensesProject;
+  filtros: Record<string, unknown>;
+  data: VExpensesExpenseItem[];
+}
+
+export interface VExpensesExpensesLoadResult {
+  linked: boolean;
+  expenses: VExpensesExpenseItem[];
+  totalRegistros: number;
+}

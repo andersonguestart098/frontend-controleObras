@@ -2,6 +2,8 @@ import { httpClient } from '@/api/httpClient';
 
 import type {
   VExpensesDashboardResponse,
+  VExpensesExpensesLoadResult,
+  VExpensesExpensesResponse,
   VExpensesFilters,
   VExpensesLoadResult,
   VExpensesProject,
@@ -68,5 +70,47 @@ export async function getVExpensesSummary(
         ...projeto,
       },
     },
+  };
+}
+
+export async function getVExpensesExpenses(
+  filters: VExpensesFilters,
+): Promise<VExpensesExpensesLoadResult> {
+  const {
+    codproj,
+    data_inicial,
+    data_final,
+  } = filters;
+
+  const projeto = await getVExpensesProjectByCodproj(codproj);
+
+  // Projeto ainda não vinculado na VExpenses.
+  // Isso é um estado vazio válido, não uma falha da consulta.
+  if (!projeto) {
+    return {
+      linked: false,
+      expenses: [],
+      totalRegistros: 0,
+    };
+  }
+
+  const response = await httpClient.get<VExpensesExpensesResponse>(
+    '/dashboard/vexpenses/expenses',
+    {
+      params: {
+        pagina: 1,
+        itens_por_pagina: 100,
+        project_id: projeto.id,
+        somente_com_projeto: true,
+        data_inicial: data_inicial || undefined,
+        data_final: data_final || undefined,
+      },
+    },
+  );
+
+  return {
+    linked: true,
+    expenses: response.data.data,
+    totalRegistros: response.data.total_registros,
   };
 }

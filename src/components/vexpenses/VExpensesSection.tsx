@@ -5,18 +5,279 @@ import {
   Card,
   Chip,
   Skeleton,
+  Tooltip,
   Typography,
 } from '@mui/material';
 
 import logoVexpenses from '@/assets/logoVexpenses.png';
 import { RollingCurrency } from '@/components/common/RollingCurrency';
-import type { VExpensesLoadResult } from '@/types/vexpenses';
+import type {
+  VExpensesExpenseItem,
+  VExpensesLoadResult,
+} from '@/types/vexpenses';
 import { formatCurrency } from '@/utils/formatters';
 
 interface VExpensesSectionProps {
   result?: VExpensesLoadResult;
+  expenses?: VExpensesExpenseItem[];
   loading?: boolean;
   error?: Error | null;
+}
+
+const richTooltipSlotProps = {
+  tooltip: {
+    sx: {
+      backgroundColor: '#ffffff',
+      color: '#0f172a',
+      borderRadius: 2.5,
+      border: '1px solid rgba(148, 163, 184, 0.16)',
+      boxShadow:
+        '0 16px 36px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08)',
+      px: 1.6,
+      py: 1.4,
+      maxWidth: 'none',
+    },
+  },
+  arrow: {
+    sx: {
+      color: '#ffffff',
+      '&::before': {
+        border: '1px solid rgba(148, 163, 184, 0.16)',
+      },
+    },
+  },
+} as const;
+
+function formatDataCurta(
+  date: string | null,
+): string {
+  if (!date) {
+    return '—';
+  }
+
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return '—';
+  }
+
+  return parsed.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function VExpensesBreakdownTooltip({
+  expenses,
+}: {
+  expenses: VExpensesExpenseItem[];
+}) {
+  const totalSomado = expenses.reduce(
+    (acumulado, despesa) =>
+      acumulado + safeNumber(despesa.value),
+    0,
+  );
+
+  const despesasOrdenadas = [...expenses].sort(
+    (a, b) =>
+      (b.date ?? '').localeCompare(a.date ?? ''),
+  );
+
+  return (
+    <Box
+      sx={{
+        width: 420,
+        maxWidth: 'calc(100vw - 24px)',
+        maxHeight: 'calc(100vh - 32px)',
+        display: 'flex',
+        flexDirection: 'column',
+        p: 0.4,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              color: '#94a3b8',
+              fontSize: '0.63rem',
+              fontWeight: 900,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Detalhamento das despesas
+          </Typography>
+
+          <Typography
+            sx={{
+              mt: 0.15,
+              color: '#475569',
+              fontSize: '0.66rem',
+              fontWeight: 700,
+              lineHeight: 1.3,
+            }}
+          >
+            Despesas lançadas na VExpenses para este projeto.
+          </Typography>
+        </Box>
+
+        <Chip
+          label={`${expenses.length} despesas`}
+          size="small"
+          sx={{
+            height: 21,
+            flexShrink: 0,
+            color: '#475569',
+            backgroundColor:
+              'rgba(148, 163, 184, 0.10)',
+            fontSize: '0.6rem',
+            fontWeight: 800,
+          }}
+        />
+      </Box>
+
+      <Typography
+        sx={{
+          mt: 0.65,
+          color: '#94a3b8',
+          fontSize: '0.59rem',
+          fontWeight: 700,
+          textAlign: 'right',
+        }}
+      >
+        Total: {formatCurrency(totalSomado)}
+      </Typography>
+
+      <Box
+        sx={{
+          mt: 0.75,
+          pt: 0.7,
+          minHeight: 0,
+          maxHeight: 320,
+          overflowY: 'auto',
+          pr: 0.4,
+          borderTop:
+            '1px solid rgba(148, 163, 184, 0.20)',
+          scrollbarWidth: 'thin',
+          scrollbarColor:
+            'rgba(100, 116, 139, 0.42) transparent',
+          '&::-webkit-scrollbar': {
+            width: 6,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            borderRadius: 99,
+            backgroundColor:
+              'rgba(100, 116, 139, 0.42)',
+          },
+        }}
+      >
+        {despesasOrdenadas.length === 0 ? (
+          <Typography
+            sx={{
+              py: 1,
+              color: '#94a3b8',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              textAlign: 'center',
+            }}
+          >
+            Nenhuma despesa encontrada para os filtros.
+          </Typography>
+        ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0.45,
+            }}
+          >
+            {despesasOrdenadas.map((despesa) => (
+              <Box
+                key={despesa.id}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    'minmax(0, 1fr) auto',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 0.85,
+                  py: 0.65,
+                  borderRadius: 1.35,
+                  backgroundColor:
+                    'rgba(63, 161, 255, 0.06)',
+                  border:
+                    '1px solid rgba(63, 161, 255, 0.18)',
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    noWrap
+                    title={
+                      despesa.title ?? undefined
+                    }
+                    sx={{
+                      color: '#334155',
+                      fontSize: '0.67rem',
+                      fontWeight: 850,
+                    }}
+                  >
+                    {despesa.title ||
+                      'Despesa sem título'}
+                  </Typography>
+
+                  <Typography
+                    noWrap
+                    sx={{
+                      mt: 0.1,
+                      color: '#94a3b8',
+                      fontSize: '0.59rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {formatDataCurta(
+                      despesa.date,
+                    )}
+                    {' · '}Despesa{' '}
+                    {despesa.expense_id}
+                    {despesa.rejected ? (
+                      <Box
+                        component="span"
+                        sx={{
+                          color: '#dc2626',
+                          fontWeight: 900,
+                        }}
+                      >
+                        {' · Rejeitada'}
+                      </Box>
+                    ) : null}
+                  </Typography>
+                </Box>
+
+                <Typography
+                  sx={{
+                    color: '#3FA1FF',
+                    fontSize: '0.7rem',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {formatCurrency(despesa.value)}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
 }
 
 type MetricFormat = 'currency' | 'number';
@@ -220,6 +481,7 @@ function VExpensesCardsSkeleton() {
 
 export function VExpensesSection({
   result,
+  expenses = [],
   loading = false,
   error = null,
 }: VExpensesSectionProps) {
@@ -227,14 +489,47 @@ export function VExpensesSection({
   const response = result?.data;
   const summary = response?.summary;
 
-  const totalAprovado = safeNumber(summary?.total_aprovado);
-  const quantidadeDespesas = safeNumber(summary?.quantidade_despesas);
-  const quantidadeRelatorios = safeNumber(summary?.quantidade_relatorios);
-  const mediaPorDespesa = safeNumber(summary?.media_por_despesa);
-  const totalReembolsavel = safeNumber(summary?.total_reembolsavel);
-  const totalNaoReembolsavel = safeNumber(
-    summary?.total_nao_reembolsavel,
+  /*
+   * Total, quantidade, média e reembolsável/não
+   * reembolsável são somados a partir da lista real
+   * de despesas (fonte da verdade), não do
+   * agregado "summary" do backend — que já veio
+   * inconsistente com os lançamentos reais.
+   *
+   * "Relatórios" continua vindo do summary porque
+   * a lista de despesas não carrega o vínculo com
+   * o relatório de origem.
+   */
+  const totalSomado = expenses.reduce(
+    (acumulado, despesa) =>
+      acumulado + safeNumber(despesa.value),
+    0,
   );
+
+  const quantidadeDespesas = expenses.length;
+
+  const quantidadeRelatorios = safeNumber(summary?.quantidade_relatorios);
+
+  const mediaPorDespesa =
+    quantidadeDespesas > 0
+      ? totalSomado / quantidadeDespesas
+      : 0;
+
+  const totalReembolsavel = expenses
+    .filter((despesa) => despesa.reimbursable)
+    .reduce(
+      (acumulado, despesa) =>
+        acumulado + safeNumber(despesa.value),
+      0,
+    );
+
+  const totalNaoReembolsavel = expenses
+    .filter((despesa) => !despesa.reimbursable)
+    .reduce(
+      (acumulado, despesa) =>
+        acumulado + safeNumber(despesa.value),
+      0,
+    );
 
   const projectName =
     response?.project?.name?.trim() || 'Projeto não vinculado';
@@ -297,6 +592,43 @@ export function VExpensesSection({
             }}
           >
             {/* CARD PRINCIPAL */}
+            <Tooltip
+              title={
+                <VExpensesBreakdownTooltip
+                  expenses={expenses}
+                />
+              }
+              arrow
+              placement="bottom-start"
+              enterDelay={180}
+              leaveDelay={180}
+              disableInteractive={false}
+              slotProps={{
+                ...richTooltipSlotProps,
+                popper: {
+                  modifiers: [
+                    {
+                      name: 'offset',
+                      options: { offset: [0, 10] },
+                    },
+                    {
+                      name: 'preventOverflow',
+                      options: { padding: 12 },
+                    },
+                    {
+                      name: 'flip',
+                      options: {
+                        fallbackPlacements: [
+                          'bottom-start',
+                          'bottom',
+                          'top-start',
+                        ],
+                      },
+                    },
+                  ],
+                },
+              }}
+            >
             <Box
               sx={{
                 minWidth: 0,
@@ -304,6 +636,7 @@ export function VExpensesSection({
                 height: '100%',
                 position: 'relative',
                 overflow: 'hidden',
+                cursor: 'help',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
@@ -346,7 +679,7 @@ export function VExpensesSection({
                       textTransform: 'uppercase',
                     }}
                   >
-                    Total aprovado
+                    Total
                   </Typography>
 
                   <Typography
@@ -362,7 +695,7 @@ export function VExpensesSection({
                     }}
                   >
                     <RollingCurrency
-                      value={totalAprovado}
+                      value={totalSomado}
                       duration={1300}
                       delayStep={75}
                     />
@@ -435,6 +768,7 @@ export function VExpensesSection({
                 </Typography>
               </Box>
             </Box>
+            </Tooltip>
 
             {/* CARD 2 — EDITE OS ITENS AQUI QUANDO DEFINIR OS KPIs */}
             <SecondaryCard
@@ -483,7 +817,7 @@ export function VExpensesSection({
                 },
                 {
                   label: 'Total',
-                  value: totalAprovado,
+                  value: totalSomado,
                   color: '#0f172a',
                   format: 'currency',
                 },

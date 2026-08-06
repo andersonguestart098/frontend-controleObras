@@ -36,6 +36,7 @@ import { useRemessasControl } from '@/hooks/useRemessasControl';
 import { useMovimentos } from '../hooks/useMovimentos';
 import { usePagamentos } from '@/hooks/usePagamentos';
 import { useComprasDetalhes } from '@/hooks/useComprasDetalhes';
+import { useVExpensesExpenses } from '@/hooks/useVExpensesExpenses';
 import { useVExpensesSummary } from '@/hooks/useVExpensesSummary';
 
 
@@ -405,12 +406,23 @@ export function DashboardPage() {
   incluir_movimentos: false,
 });
 
+  const vexpensesExpenses = useVExpensesExpenses({
+  codproj: filters.codproj,
+
+  data_inicial:
+    filters.dtneg_inicial ?? undefined,
+
+  data_final:
+    filters.dtneg_final ?? undefined,
+});
+
   const isUpdating =
     dashboard.isFetching ||
     remessasControl.isFetching ||
     movimentos.isFetching ||
     pagamentos.isFetching ||
     comprasDetalhes.isFetching ||
+    vexpensesExpenses.isFetching ||
     vexpenses.isFetching;
 
   const isDashboardLoading =
@@ -446,6 +458,7 @@ export function DashboardPage() {
       pagamentos.refetch(),
       comprasDetalhes.refetch(),
       vexpenses.refetch(),
+      vexpensesExpenses.refetch(),
     ]);
   }
 
@@ -918,11 +931,19 @@ export function DashboardPage() {
 >
   <VExpensesSection
     result={vexpenses.data}
+    expenses={
+      vexpensesExpenses.data?.expenses ?? []
+    }
     loading={
       vexpenses.isPending ||
-      vexpenses.isFetching
+      vexpenses.isFetching ||
+      vexpensesExpenses.isPending ||
+      vexpensesExpenses.isFetching
     }
-    error={vexpenses.error}
+    error={
+      vexpenses.error ??
+      vexpensesExpenses.error
+    }
   />
 </Box>
 
