@@ -316,7 +316,21 @@ export default function LoginPage() {
   return (
     <Box
       sx={{
+        // wrapper externo: centraliza o conteúdo e sangra a cor nas laterais
+        minHeight: "100vh",
+        overflow: "hidden",
+        display: "flex",
+        justifyContent: "center",
+        background:
+          "linear-gradient(to right, #0f172a 0 50%, #ffffff 50% 100%)",
+      }}
+    >
+    <Box
+      sx={{
         position: "relative",
+        width: "100%",
+        maxWidth: 1720,
+        mx: "auto",
         minHeight: "100vh",
         overflow: "hidden",
         display: "grid",
@@ -1235,6 +1249,7 @@ export default function LoginPage() {
           </DialogActions>
         </Box>
       </Dialog>
+    </Box>
     </Box>
   );
 }
