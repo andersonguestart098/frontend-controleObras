@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 
 import {
   Box,
@@ -287,16 +287,62 @@ function VExpensesBreakdownTooltip({
   );
 }
 
-function despesaStatusColor(status: string): string {
-  if (status === 'PAGA') {
-    return '#059669';
+type DespesaGrupoStatus =
+  | 'EM_ABERTO'
+  | 'VENCIDA'
+  | 'PAGA'
+  | '';
+
+interface DespesaGroupConfig {
+  status: DespesaGrupoStatus;
+  label: string;
+  color: string;
+  backgroundColor: string;
+}
+
+const despesaGroups: DespesaGroupConfig[] = [
+  {
+    status: 'EM_ABERTO',
+    label: 'Em aberto',
+    color: '#d97706',
+    backgroundColor: 'rgba(217, 119, 6, 0.055)',
+  },
+  {
+    status: 'VENCIDA',
+    label: 'Vencidas',
+    color: '#dc2626',
+    backgroundColor: 'rgba(220, 38, 38, 0.055)',
+  },
+  {
+    status: 'PAGA',
+    label: 'Pagas',
+    color: '#059669',
+    backgroundColor: 'rgba(5, 150, 105, 0.055)',
+  },
+];
+
+function normalizeDespesaStatus(
+  status: string,
+): DespesaGrupoStatus {
+  const normalized = status
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (normalized.includes('VENC')) {
+    return 'VENCIDA';
   }
 
-  if (status === 'VENCIDA') {
-    return '#dc2626';
+  if (normalized.includes('ABERT')) {
+    return 'EM_ABERTO';
   }
 
-  return '#d97706';
+  if (normalized.includes('PAG')) {
+    return 'PAGA';
+  }
+
+  return '';
 }
 
 function DespesasGeraisTooltip({
@@ -310,9 +356,34 @@ function DespesasGeraisTooltip({
     0,
   );
 
-  const despesasOrdenadas = [...despesas].sort(
-    (a, b) =>
-      (b.dtneg ?? '').localeCompare(a.dtneg ?? ''),
+  const grupos = despesaGroups.map((grupo) => {
+    const itens = despesas
+      .filter(
+        (despesa) =>
+          normalizeDespesaStatus(
+            despesa.status_despesa,
+          ) === grupo.status,
+      )
+      .sort(
+        (a, b) =>
+          (b.dtneg ?? '').localeCompare(a.dtneg ?? ''),
+      );
+
+    const total = itens.reduce(
+      (acumulado, despesa) =>
+        acumulado + safeNumber(despesa.valor_despesa),
+      0,
+    );
+
+    return {
+      ...grupo,
+      itens,
+      total,
+    };
+  });
+
+  const gruposComItens = grupos.filter(
+    (grupo) => grupo.itens.length > 0,
   );
 
   return (
@@ -410,7 +481,7 @@ function DespesasGeraisTooltip({
           },
         }}
       >
-        {despesasOrdenadas.length === 0 ? (
+        {despesas.length === 0 ? (
           <Typography
             sx={{
               py: 1,
@@ -423,96 +494,142 @@ function DespesasGeraisTooltip({
             Nenhuma despesa encontrada para os filtros.
           </Typography>
         ) : (
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 0.45,
-            }}
-          >
-            {despesasOrdenadas.map((despesa) => (
+          gruposComItens.map((grupo) => (
+            <Box
+              key={`detalhe-${grupo.status}`}
+              sx={{
+                '& + &': {
+                  mt: 0.9,
+                  pt: 0.8,
+                  borderTop:
+                    '1px solid rgba(148, 163, 184, 0.14)',
+                },
+              }}
+            >
               <Box
-                key={despesa.nufin}
                 sx={{
-                  display: 'grid',
-                  gridTemplateColumns:
-                    'minmax(0, 1fr) auto',
+                  display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'space-between',
                   gap: 1,
-                  px: 0.85,
-                  py: 0.65,
-                  borderRadius: 1.35,
-                  backgroundColor:
-                    'rgba(15, 23, 42, 0.03)',
-                  border:
-                    '1px solid rgba(148, 163, 184, 0.18)',
+                  mb: 0.5,
                 }}
               >
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    noWrap
-                    title={
-                      despesa.parceiro ?? undefined
-                    }
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.55,
+                  }}
+                >
+                  <Box
                     sx={{
-                      color: '#334155',
-                      fontSize: '0.67rem',
-                      fontWeight: 850,
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      backgroundColor: grupo.color,
+                      boxShadow: `0 0 6px ${grupo.color}66`,
                     }}
-                  >
-                    {despesa.parceiro ||
-                      despesa.natureza ||
-                      'Despesa sem descrição'}
-                  </Typography>
+                  />
 
                   <Typography
-                    noWrap
                     sx={{
-                      mt: 0.1,
-                      color: '#94a3b8',
-                      fontSize: '0.59rem',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {formatDataCurta(
-                      despesa.dtvenc,
-                    )}
-                    {' · '}
-                    {despesa.natureza || 'Sem natureza'}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography
-                    sx={{
-                      color: '#0f172a',
-                      fontSize: '0.7rem',
+                      color: grupo.color,
+                      fontSize: '0.65rem',
                       fontWeight: 900,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {formatCurrency(despesa.valor_despesa)}
-                  </Typography>
-
-                  <Typography
-                    sx={{
-                      mt: 0.1,
-                      color: despesaStatusColor(
-                        despesa.status_despesa,
-                      ),
-                      fontSize: '0.56rem',
-                      fontWeight: 850,
+                      letterSpacing: '0.04em',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.03em',
-                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {despesa.status_despesa}
+                    {grupo.label} ({grupo.itens.length})
                   </Typography>
                 </Box>
+
+                <Typography
+                  sx={{
+                    color: grupo.color,
+                    fontSize: '0.69rem',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {formatCurrency(grupo.total)}
+                </Typography>
               </Box>
-            ))}
-          </Box>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.45,
+                }}
+              >
+                {grupo.itens.map((despesa) => (
+                  <Box
+                    key={despesa.nufin}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'minmax(0, 1fr) auto',
+                      alignItems: 'center',
+                      gap: 1,
+                      px: 0.85,
+                      py: 0.65,
+                      borderRadius: 1.35,
+                      backgroundColor:
+                        grupo.backgroundColor,
+                      border: `1px solid ${grupo.color}18`,
+                    }}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography
+                        noWrap
+                        title={
+                          despesa.parceiro ?? undefined
+                        }
+                        sx={{
+                          color: '#334155',
+                          fontSize: '0.67rem',
+                          fontWeight: 850,
+                        }}
+                      >
+                        {despesa.parceiro ||
+                          despesa.natureza ||
+                          'Despesa sem descrição'}
+                      </Typography>
+
+                      <Typography
+                        noWrap
+                        sx={{
+                          mt: 0.1,
+                          color: '#94a3b8',
+                          fontSize: '0.59rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {formatDataCurta(
+                          despesa.dtvenc,
+                        )}
+                        {' · '}
+                        {despesa.natureza || 'Sem natureza'}
+                      </Typography>
+                    </Box>
+
+                    <Typography
+                      sx={{
+                        color: grupo.color,
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {formatCurrency(despesa.valor_despesa)}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          ))
         )}
       </Box>
     </Box>
@@ -995,7 +1112,7 @@ export function VExpensesSection({
             letterSpacing: '-0.025em',
           }}
         >
-          Despesas da Obra
+          Despesas da obra
         </Typography>
 
         <Typography
