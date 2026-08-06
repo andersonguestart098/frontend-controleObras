@@ -322,7 +322,7 @@ export default function LoginPage() {
         display: "flex",
         justifyContent: "center",
         background:
-          "linear-gradient(to right, #0f172a 0 50%, #ffffff 50% 100%)",
+          "linear-gradient(to right, #0f172a 0 50%, #f5f7fa 50% 100%)",
       }}
     >
     <Box
@@ -341,9 +341,7 @@ export default function LoginPage() {
         },
 
         background:
-          "linear-gradient(135deg, #ffffff 0%, #eef2f7 55%, #ffffff 100%)",
-        backgroundSize: "220% 220%",
-        animation: "loginBgShift 18s ease-in-out infinite",
+          "radial-gradient(circle at 72% 42%, #ffffff 0%, #f5f7fa 55%)",
 
         // ==== keyframes globais (blobs + fundo) ====
         "@keyframes floatBlobA": {
@@ -434,7 +432,7 @@ export default function LoginPage() {
 
           <path
             d="M0,0 L620,0 C700,160 690,360 620,540 C555,700 545,860 610,1000 L0,1000 Z"
-            fill="url(#bannerWaveGradient)"
+            fill="#0f172a"
           />
         </svg>
       </Box>
@@ -473,7 +471,7 @@ export default function LoginPage() {
             position: "absolute",
             zIndex: 0,
             top: "6%",
-            left: "2%",
+            left: "10%",
             width: 440,
             height: 440,
             borderRadius: "50%",
@@ -656,7 +654,7 @@ export default function LoginPage() {
             position: "absolute",
             zIndex: 0,
             top: "12%",
-            right: "-6%",
+            right: "3%",
             width: 380,
             height: 380,
             borderRadius: "50%",
