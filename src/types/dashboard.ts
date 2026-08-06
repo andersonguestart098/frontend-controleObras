@@ -258,6 +258,65 @@ export interface ImpostosKpis {
   consolidado_liquido: ImpostoGrupoKpis;
 }
 
+export interface DespesasGeraisKpis {
+  quantidade_despesas: number;
+  quantidade_pagas: number;
+  quantidade_vencidas: number;
+  quantidade_em_aberto: number;
+
+  total_despesas: number;
+  total_pago: number;
+  total_em_aberto: number;
+  total_vencido: number;
+}
+
+export type DespesaGeralStatus =
+  | 'PAGA'
+  | 'VENCIDA'
+  | 'EM ABERTO'
+  | string;
+
+export interface DespesaGeralItem {
+  nufin: number;
+  nunota: number | null;
+  parcela: string | number | null;
+
+  dtneg: string | null;
+  dtvenc: string | null;
+  dhbaixa: string | null;
+
+  codproj: number;
+  projeto: string;
+
+  codnat: number;
+  natureza: string;
+
+  codparc: number;
+  parceiro: string;
+  cgc_cpf: string | null;
+
+  historico: string | null;
+
+  valor_despesa: number;
+  valor_pago: number;
+  valor_em_aberto: number;
+  valor_vencido: number;
+
+  status_despesa: DespesaGeralStatus;
+
+  valor_movimento_bancario: number | null;
+  data_movimento: string | null;
+  mbc_recdesp: number | null;
+  origmov: string | null;
+  nubco: number | null;
+}
+
+export interface DespesasGeraisResponse {
+  filters: DashboardFilters;
+  count: number;
+  despesas: DespesaGeralItem[];
+}
+
 export interface DashboardKpis {
   vendas: VendasKpis;
 
@@ -271,6 +330,8 @@ export interface DashboardKpis {
 
   mao_de_obra?: MaoDeObraKpis;
   pagamentos?: PagamentosKpis;
+
+  despesas_gerais?: DespesasGeraisKpis;
 
   remessa_futura: RemessaFuturaKpis;
 

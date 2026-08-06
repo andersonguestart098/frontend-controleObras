@@ -36,6 +36,7 @@ import { useRemessasControl } from '@/hooks/useRemessasControl';
 import { useMovimentos } from '../hooks/useMovimentos';
 import { usePagamentos } from '@/hooks/usePagamentos';
 import { useComprasDetalhes } from '@/hooks/useComprasDetalhes';
+import { useDespesasGerais } from '@/hooks/useDespesasGerais';
 import { useProjetos } from '@/hooks/useProjetos';
 import { useVExpensesExpenses } from '@/hooks/useVExpensesExpenses';
 import { useVExpensesSummary } from '@/hooks/useVExpensesSummary';
@@ -397,6 +398,9 @@ export function DashboardPage() {
   const comprasDetalhes =
     useComprasDetalhes(filters);
 
+  const despesasGerais =
+    useDespesasGerais(filters);
+
   const vexpenses = useVExpensesSummary({
   codproj: filters.codproj,
 
@@ -425,6 +429,7 @@ export function DashboardPage() {
     movimentos.isFetching ||
     pagamentos.isFetching ||
     comprasDetalhes.isFetching ||
+    despesasGerais.isFetching ||
     vexpensesExpenses.isFetching ||
     vexpenses.isFetching;
 
@@ -460,6 +465,7 @@ export function DashboardPage() {
       movimentos.refetch(),
       pagamentos.refetch(),
       comprasDetalhes.refetch(),
+      despesasGerais.refetch(),
       vexpenses.refetch(),
       vexpensesExpenses.refetch(),
     ]);
@@ -941,6 +947,12 @@ export function DashboardPage() {
     result={vexpenses.data}
     expenses={
       vexpensesExpenses.data?.expenses ?? []
+    }
+    despesasGeraisKpis={
+      dashboard.data.kpis.despesas_gerais
+    }
+    despesasGerais={
+      despesasGerais.data?.despesas ?? []
     }
     loading={
       vexpenses.isPending ||

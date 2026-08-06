@@ -2,6 +2,7 @@ import type {
   ComprasDetalhesResponse,
   DashboardFilters,
   DashboardResponse,
+  DespesasGeraisResponse,
   PagamentosResponse,
   ProjetoFiltro,
   RemessaControlResponse,
@@ -95,6 +96,22 @@ export async function getPagamentos(
   const response =
     await httpClient.post<PagamentosResponse>(
       '/dashboard/pagamentos',
+      filters,
+      {
+        signal,
+      },
+    );
+
+  return response.data;
+}
+
+export async function getDespesasGerais(
+  filters: DashboardFilters,
+  signal?: AbortSignal,
+): Promise<DespesasGeraisResponse> {
+  const response =
+    await httpClient.post<DespesasGeraisResponse>(
+      '/dashboard/despesas-gerais',
       filters,
       {
         signal,

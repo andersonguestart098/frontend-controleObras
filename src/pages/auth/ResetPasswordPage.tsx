@@ -199,36 +199,87 @@ export default function ResetPasswordPage() {
         background:
           "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
 
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-
-          background:
-            "radial-gradient(circle at 84% 10%, rgba(14, 165, 233, 0.17), transparent 32%)",
-
-          pointerEvents: "none",
+        "@keyframes floatBlobA": {
+          "0%, 100%": {
+            transform: "translate(0, 0) scale(1)",
+          },
+          "50%": {
+            transform: "translate(60px, 45px) scale(1.22)",
+          },
         },
-
-        "&::after": {
-          content: '""',
-          position: "absolute",
-
-          width: 460,
-          height: 460,
-
-          right: -180,
-          bottom: -330,
-
-          borderRadius: "50%",
-
-          background: "rgba(37, 99, 235, 0.12)",
-
-          filter: "blur(24px)",
-          pointerEvents: "none",
+        "@keyframes floatBlobB": {
+          "0%, 100%": {
+            transform: "translate(0, 0) scale(1.12)",
+          },
+          "50%": {
+            transform: "translate(-50px, -40px) scale(1)",
+          },
+        },
+        "@keyframes floatBlobC": {
+          "0%, 100%": {
+            transform: "translate(0, 0) scale(1)",
+          },
+          "50%": {
+            transform: "translate(-45px, 40px) scale(1.2)",
+          },
         },
       }}
     >
+      {/* blobs animados (mesma identidade do login) */}
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          zIndex: 0,
+          top: "8%",
+          left: "8%",
+          width: 420,
+          height: 420,
+          borderRadius: "50%",
+          pointerEvents: "none",
+          filter: "blur(28px)",
+          background:
+            "radial-gradient(circle, rgba(56, 189, 248, 0.24) 0%, transparent 70%)",
+          animation: "floatBlobA 17s ease-in-out infinite",
+        }}
+      />
+
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          zIndex: 0,
+          bottom: "-8%",
+          right: "10%",
+          width: 500,
+          height: 500,
+          borderRadius: "50%",
+          pointerEvents: "none",
+          filter: "blur(32px)",
+          background:
+            "radial-gradient(circle, rgba(37, 99, 235, 0.24) 0%, transparent 70%)",
+          animation: "floatBlobB 21s ease-in-out infinite",
+        }}
+      />
+
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          zIndex: 0,
+          top: "40%",
+          right: "26%",
+          width: 280,
+          height: 280,
+          borderRadius: "50%",
+          pointerEvents: "none",
+          filter: "blur(26px)",
+          background:
+            "radial-gradient(circle, rgba(14, 165, 233, 0.16) 0%, transparent 70%)",
+          animation: "floatBlobC 24s ease-in-out infinite",
+        }}
+      />
+
       <Container
         maxWidth="sm"
         sx={{
@@ -251,7 +302,7 @@ export default function ResetPasswordPage() {
             sx={{
               height: 8,
               background:
-                "linear-gradient(90deg, #ef6c00 0%, #ff9800 100%)",
+                "linear-gradient(90deg, #0095FF 0%, #33b5ff 100%)",
             }}
           />
 
@@ -303,7 +354,7 @@ export default function ResetPasswordPage() {
                 }}
               >
                 Crie uma nova senha para acessar o
-                Dashboard Gerencial de Obras.
+                Sistema Gerencial de Obras.
               </Typography>
             </Stack>
 
@@ -406,6 +457,15 @@ export default function ResetPasswordPage() {
                       ),
                     },
                   }}
+                  sx={{
+                    "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+                      borderColor: "#0095FF",
+                    },
+
+                    "& .MuiInputLabel-root.Mui-focused": {
+                      color: "#0095FF",
+                    },
+                  }}
                 />
 
                 <TextField
@@ -468,6 +528,15 @@ export default function ResetPasswordPage() {
                       ),
                     },
                   }}
+                  sx={{
+                    "& .MuiOutlinedInput-root:not(.Mui-error).Mui-focused fieldset": {
+                      borderColor: "#0095FF",
+                    },
+
+                    "& .MuiInputLabel-root:not(.Mui-error).Mui-focused": {
+                      color: "#0095FF",
+                    },
+                  }}
                 />
 
                 <Button
@@ -483,14 +552,14 @@ export default function ResetPasswordPage() {
                     textTransform: "none",
                     fontSize: "1rem",
                     background:
-                      "linear-gradient(90deg, #ef6c00 0%, #ff9800 100%)",
+                      "linear-gradient(90deg, #0095FF 0%, #33b5ff 100%)",
                     boxShadow:
-                      "0 10px 24px rgba(239, 108, 0, 0.25)",
+                      "0 12px 28px rgba(0, 149, 255, 0.25)",
                     "&:hover": {
                       background:
-                        "linear-gradient(90deg, #e65100 0%, #f57c00 100%)",
+                        "linear-gradient(90deg, #0077cc 0%, #0095FF 100%)",
                       boxShadow:
-                        "0 12px 28px rgba(239, 108, 0, 0.32)",
+                        "0 15px 34px rgba(0, 149, 255, 0.34)",
                     },
                   }}
                 >
@@ -516,6 +585,12 @@ export default function ResetPasswordPage() {
                   sx={{
                     textTransform: "none",
                     fontWeight: 600,
+                    color: "#64748b",
+
+                    "&:hover": {
+                      backgroundColor:
+                        "rgba(100, 116, 139, 0.08)",
+                    },
                   }}
                 >
                   Voltar para o login
@@ -527,10 +602,11 @@ export default function ResetPasswordPage() {
 
         <Typography
           variant="body2"
-          color="text.secondary"
           sx={{
             mt: 3,
             textAlign: "center",
+            color: "rgba(255, 255, 255, 0.7)",
+            fontWeight: 500,
           }}
         >
           Dashboard Gerencial de Obras

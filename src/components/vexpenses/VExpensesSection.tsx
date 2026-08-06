@@ -9,8 +9,13 @@ import {
   Typography,
 } from '@mui/material';
 
+import logoSankhya from '@/assets/logoSankhya.png';
 import logoVexpenses from '@/assets/logoVexpenses.png';
 import { RollingCurrency } from '@/components/common/RollingCurrency';
+import type {
+  DespesaGeralItem,
+  DespesasGeraisKpis,
+} from '@/types/dashboard';
 import type {
   VExpensesExpenseItem,
   VExpensesLoadResult,
@@ -20,6 +25,8 @@ import { formatCurrency } from '@/utils/formatters';
 interface VExpensesSectionProps {
   result?: VExpensesLoadResult;
   expenses?: VExpensesExpenseItem[];
+  despesasGeraisKpis?: DespesasGeraisKpis;
+  despesasGerais?: DespesaGeralItem[];
   loading?: boolean;
   error?: Error | null;
 }
@@ -280,6 +287,238 @@ function VExpensesBreakdownTooltip({
   );
 }
 
+function despesaStatusColor(status: string): string {
+  if (status === 'PAGA') {
+    return '#059669';
+  }
+
+  if (status === 'VENCIDA') {
+    return '#dc2626';
+  }
+
+  return '#d97706';
+}
+
+function DespesasGeraisTooltip({
+  despesas,
+}: {
+  despesas: DespesaGeralItem[];
+}) {
+  const totalSomado = despesas.reduce(
+    (acumulado, despesa) =>
+      acumulado + safeNumber(despesa.valor_despesa),
+    0,
+  );
+
+  const despesasOrdenadas = [...despesas].sort(
+    (a, b) =>
+      (b.dtneg ?? '').localeCompare(a.dtneg ?? ''),
+  );
+
+  return (
+    <Box
+      sx={{
+        width: 420,
+        maxWidth: 'calc(100vw - 24px)',
+        maxHeight: 'calc(100vh - 32px)',
+        display: 'flex',
+        flexDirection: 'column',
+        p: 0.4,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              color: '#94a3b8',
+              fontSize: '0.63rem',
+              fontWeight: 900,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Detalhamento das despesas
+          </Typography>
+
+          <Typography
+            sx={{
+              mt: 0.15,
+              color: '#475569',
+              fontSize: '0.66rem',
+              fontWeight: 700,
+              lineHeight: 1.3,
+            }}
+          >
+            Despesas gerais lançadas para este projeto.
+          </Typography>
+        </Box>
+
+        <Chip
+          label={`${despesas.length} despesas`}
+          size="small"
+          sx={{
+            height: 21,
+            flexShrink: 0,
+            color: '#475569',
+            backgroundColor:
+              'rgba(148, 163, 184, 0.10)',
+            fontSize: '0.6rem',
+            fontWeight: 800,
+          }}
+        />
+      </Box>
+
+      <Typography
+        sx={{
+          mt: 0.65,
+          color: '#94a3b8',
+          fontSize: '0.59rem',
+          fontWeight: 700,
+          textAlign: 'right',
+        }}
+      >
+        Total: {formatCurrency(totalSomado)}
+      </Typography>
+
+      <Box
+        sx={{
+          mt: 0.75,
+          pt: 0.7,
+          minHeight: 0,
+          maxHeight: 320,
+          overflowY: 'auto',
+          pr: 0.4,
+          borderTop:
+            '1px solid rgba(148, 163, 184, 0.20)',
+          scrollbarWidth: 'thin',
+          scrollbarColor:
+            'rgba(100, 116, 139, 0.42) transparent',
+          '&::-webkit-scrollbar': {
+            width: 6,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            borderRadius: 99,
+            backgroundColor:
+              'rgba(100, 116, 139, 0.42)',
+          },
+        }}
+      >
+        {despesasOrdenadas.length === 0 ? (
+          <Typography
+            sx={{
+              py: 1,
+              color: '#94a3b8',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              textAlign: 'center',
+            }}
+          >
+            Nenhuma despesa encontrada para os filtros.
+          </Typography>
+        ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0.45,
+            }}
+          >
+            {despesasOrdenadas.map((despesa) => (
+              <Box
+                key={despesa.nufin}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    'minmax(0, 1fr) auto',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 0.85,
+                  py: 0.65,
+                  borderRadius: 1.35,
+                  backgroundColor:
+                    'rgba(15, 23, 42, 0.03)',
+                  border:
+                    '1px solid rgba(148, 163, 184, 0.18)',
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    noWrap
+                    title={
+                      despesa.parceiro ?? undefined
+                    }
+                    sx={{
+                      color: '#334155',
+                      fontSize: '0.67rem',
+                      fontWeight: 850,
+                    }}
+                  >
+                    {despesa.parceiro ||
+                      despesa.natureza ||
+                      'Despesa sem descrição'}
+                  </Typography>
+
+                  <Typography
+                    noWrap
+                    sx={{
+                      mt: 0.1,
+                      color: '#94a3b8',
+                      fontSize: '0.59rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {formatDataCurta(
+                      despesa.dtvenc,
+                    )}
+                    {' · '}
+                    {despesa.natureza || 'Sem natureza'}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography
+                    sx={{
+                      color: '#0f172a',
+                      fontSize: '0.7rem',
+                      fontWeight: 900,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {formatCurrency(despesa.valor_despesa)}
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      mt: 0.1,
+                      color: despesaStatusColor(
+                        despesa.status_despesa,
+                      ),
+                      fontSize: '0.56rem',
+                      fontWeight: 850,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.03em',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {despesa.status_despesa}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 type MetricFormat = 'currency' | 'number';
 
 interface MetricItem {
@@ -454,6 +693,224 @@ function SecondaryCard({
   );
 }
 
+function DespesasCard({
+  kpis,
+  despesas,
+}: {
+  kpis?: DespesasGeraisKpis;
+  despesas: DespesaGeralItem[];
+}) {
+  const totalPago = safeNumber(kpis?.total_pago);
+  const totalVencido = safeNumber(kpis?.total_vencido);
+  const totalEmAberto = safeNumber(kpis?.total_em_aberto);
+
+  const items: [MetricItem, MetricItem, MetricItem] = [
+    {
+      label: 'Pago',
+      value: totalPago,
+      color: '#059669',
+      format: 'currency',
+    },
+    {
+      label: 'Vencido',
+      value: totalVencido,
+      color: '#dc2626',
+      format: 'currency',
+    },
+    {
+      label: 'Em aberto',
+      value: totalEmAberto,
+      color: '#d97706',
+      format: 'currency',
+    },
+  ];
+
+  return (
+    <Tooltip
+      title={
+        <DespesasGeraisTooltip
+          despesas={despesas}
+        />
+      }
+      arrow
+      placement="bottom-start"
+      enterDelay={180}
+      leaveDelay={180}
+      disableInteractive={false}
+      slotProps={{
+        ...richTooltipSlotProps,
+        popper: {
+          modifiers: [
+            {
+              name: 'offset',
+              options: { offset: [0, 10] },
+            },
+            {
+              name: 'preventOverflow',
+              options: { padding: 12 },
+            },
+            {
+              name: 'flip',
+              options: {
+                fallbackPlacements: [
+                  'bottom-start',
+                  'bottom',
+                  'top-start',
+                ],
+              },
+            },
+          ],
+        },
+      }}
+    >
+      <Box
+        sx={{
+          minWidth: 0,
+          minHeight: 156,
+          height: '100%',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 1.5,
+          p: 2.4,
+          borderRadius: 3,
+          border: '1px solid rgba(148, 163, 184, 0.13)',
+          backgroundColor: '#ffffff',
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: 'help',
+          transition: 'transform 180ms ease, box-shadow 180ms ease',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(circle at 88% 8%, #0ea5e912, transparent 34%)',
+            pointerEvents: 'none',
+          },
+          '&:hover': {
+            transform: 'translateY(-3px)',
+            boxShadow:
+              '0 14px 30px rgba(15, 23, 42, 0.08)',
+          },
+        }}
+      >
+        <Box
+          sx={{
+            position: 'relative',
+            zIndex: 1,
+            width: 68,
+            height: 68,
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+            borderRadius: '50%',
+            backgroundColor: '#ffffff',
+            border: '1px solid rgba(148, 163, 184, 0.20)',
+            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            component="img"
+            src={logoSankhya}
+            alt="Sankhya"
+            sx={{
+              display: 'block',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        </Box>
+
+        <Box
+          sx={{
+            position: 'relative',
+            zIndex: 1,
+            minWidth: 0,
+            flex: 1,
+          }}
+        >
+          <Typography
+            sx={{
+              color: '#64748b',
+              fontSize: '0.76rem',
+              fontWeight: 850,
+            }}
+          >
+            Despesas
+          </Typography>
+
+          <Typography
+            sx={{
+              mt: 0.15,
+              color: '#94a3b8',
+              fontSize: '0.62rem',
+              fontWeight: 650,
+            }}
+          >
+            Situação das despesas gerais da obra
+          </Typography>
+
+          <Box
+            sx={{
+              mt: 1.35,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: 0,
+            }}
+          >
+            {items.map((item, index) => (
+              <Box
+                key={item.label}
+                sx={{
+                  minWidth: 0,
+                  pl: index === 0 ? 0 : 1.25,
+                  borderLeft:
+                    index === 0
+                      ? 'none'
+                      : '1px solid rgba(148, 163, 184, 0.20)',
+                }}
+              >
+                <Typography
+                  sx={{
+                    color: item.color,
+                    fontSize: '0.61rem',
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.025em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {item.label}
+                </Typography>
+
+                <Typography
+                  component="div"
+                  sx={{
+                    mt: 0.35,
+                    color: item.color,
+                    fontSize: { xs: '0.93rem', md: '1.03rem' },
+                    lineHeight: 1.15,
+                    fontWeight: 900,
+                    letterSpacing: '-0.025em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <RollingCurrency
+                    value={item.value}
+                    delayStep={55}
+                  />
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      </Box>
+    </Tooltip>
+  );
+}
+
 function VExpensesCardsSkeleton() {
   return (
     <Box
@@ -482,6 +939,8 @@ function VExpensesCardsSkeleton() {
 export function VExpensesSection({
   result,
   expenses = [],
+  despesasGeraisKpis,
+  despesasGerais = [],
   loading = false,
   error = null,
 }: VExpensesSectionProps) {
@@ -515,22 +974,6 @@ export function VExpensesSection({
       ? totalSomado / quantidadeDespesas
       : 0;
 
-  const totalReembolsavel = expenses
-    .filter((despesa) => despesa.reimbursable)
-    .reduce(
-      (acumulado, despesa) =>
-        acumulado + safeNumber(despesa.value),
-      0,
-    );
-
-  const totalNaoReembolsavel = expenses
-    .filter((despesa) => !despesa.reimbursable)
-    .reduce(
-      (acumulado, despesa) =>
-        acumulado + safeNumber(despesa.value),
-      0,
-    );
-
   const projectName =
     response?.project?.name?.trim() || 'Projeto não vinculado';
 
@@ -552,7 +995,7 @@ export function VExpensesSection({
             letterSpacing: '-0.025em',
           }}
         >
-          Despesas VExpenses
+          Despesas da Obra
         </Typography>
 
         <Typography
@@ -772,7 +1215,7 @@ export function VExpensesSection({
 
             {/* CARD 2 — EDITE OS ITENS AQUI QUANDO DEFINIR OS KPIs */}
             <SecondaryCard
-              title="Movimentação"
+              title="Movimentação VExpenses"
               subtitle="Volume de relatórios e despesas aprovadas"
               accentColor="#0ea5e9"
               items={[
@@ -797,31 +1240,10 @@ export function VExpensesSection({
               ]}
             />
 
-            {/* CARD 3 — EDITE OS ITENS AQUI QUANDO DEFINIR OS KPIs */}
-            <SecondaryCard
-              title="Composição"
-              subtitle="Distribuição do valor aprovado"
-              accentColor="#10b981"
-              items={[
-                {
-                  label: 'Reembolsável',
-                  value: totalReembolsavel,
-                  color: '#059669',
-                  format: 'currency',
-                },
-                {
-                  label: 'Não reemb.',
-                  value: totalNaoReembolsavel,
-                  color: '#d97706',
-                  format: 'currency',
-                },
-                {
-                  label: 'Total',
-                  value: totalSomado,
-                  color: '#0f172a',
-                  format: 'currency',
-                },
-              ]}
+            {/* CARD 3 — DESPESAS DA OBRA (SANKHYA) */}
+            <DespesasCard
+              kpis={despesasGeraisKpis}
+              despesas={despesasGerais}
             />
           </Box>
         )}
