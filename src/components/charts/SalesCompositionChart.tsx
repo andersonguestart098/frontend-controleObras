@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -6,14 +7,11 @@ import {
 
 import type { EChartsOption } from 'echarts';
 
-import {
-  Box,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import { Box } from '@mui/material';
 
 import { EChart } from '@/components/charts/EChart';
 import { useInViewOnce } from '@/components/common/RollingCurrency';
+import { useContainerWidth } from '@/hooks/useContainerWidth';
 import type { DashboardKpis } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -75,27 +73,39 @@ function formatCompactCurrency(
 export function SalesCompositionChart({
   kpis,
 }: SalesCompositionChartProps) {
-  const theme = useTheme();
+  const [inViewRef, inView] =
+    useInViewOnce(
+      0.35,
+      '0px 0px -100px 0px',
+    );
 
-  const isMobile = useMediaQuery(
-    theme.breakpoints.down('sm'),
+  const [widthRef, containerWidth] =
+    useContainerWidth();
+
+  const setRefs = useCallback(
+    (node: HTMLElement | null) => {
+      inViewRef(node);
+      widthRef(node);
+    },
+    [inViewRef, widthRef],
   );
 
-  const isTablet = useMediaQuery(
-    theme.breakpoints.between('sm', 'lg'),
-  );
+  /*
+   * Baseado na largura real do card, não na
+   * viewport — o card pode estar espremido num
+   * grid de 3 colunas mesmo em janelas largas.
+   */
+  const isMobile =
+    containerWidth > 0 && containerWidth < 420;
+
+  const isTablet =
+    containerWidth >= 420 && containerWidth < 640;
 
   const chartHeight = isMobile
     ? 340
     : isTablet
       ? 390
       : 420;
-
-  const [containerRef, inView] =
-    useInViewOnce(
-      0.35,
-      '0px 0px -100px 0px',
-    );
 
   const [grown, setGrown] = useState(false);
 
@@ -538,7 +548,7 @@ export function SalesCompositionChart({
 
   return (
     <Box
-      ref={containerRef}
+      ref={setRefs}
       sx={fadeUpSx}
     >
       {inView ? (

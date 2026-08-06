@@ -10,14 +10,11 @@ import type {
   EChartsOption,
 } from 'echarts';
 
-import {
-  Box,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import { Box } from '@mui/material';
 
 import { EChart } from '@/components/charts/EChart';
 import { useInViewOnce } from '@/components/common/RollingCurrency';
+import { useContainerWidth } from '@/hooks/useContainerWidth';
 import type { ImpostoGrupoKpis } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -31,27 +28,39 @@ const HIGHLIGHT_START_MS = 1900;
 export function TaxBreakdownChart({
   data,
 }: TaxBreakdownChartProps) {
-  const theme = useTheme();
+  const [inViewRef, inView] =
+    useInViewOnce(
+      0.35,
+      '0px 0px -100px 0px',
+    );
 
-  const isMobile = useMediaQuery(
-    theme.breakpoints.down('sm'),
+  const [widthRef, containerWidth] =
+    useContainerWidth();
+
+  const setRefs = useCallback(
+    (node: HTMLElement | null) => {
+      inViewRef(node);
+      widthRef(node);
+    },
+    [inViewRef, widthRef],
   );
 
-  const isTablet = useMediaQuery(
-    theme.breakpoints.between('sm', 'lg'),
-  );
+  /*
+   * Baseado na largura real do card, não na
+   * viewport — o card pode estar espremido num
+   * grid de 3 colunas mesmo em janelas largas.
+   */
+  const isMobile =
+    containerWidth > 0 && containerWidth < 420;
+
+  const isTablet =
+    containerWidth >= 420 && containerWidth < 640;
 
   const chartHeight = isMobile
     ? 360
     : isTablet
       ? 400
       : 420;
-
-  const [containerRef, inView] =
-    useInViewOnce(
-      0.35,
-      '0px 0px -100px 0px',
-    );
 
   const [chart, setChart] =
     useState<ECharts | null>(null);
@@ -440,7 +449,7 @@ export function TaxBreakdownChart({
 
   return (
     <Box
-      ref={containerRef}
+      ref={setRefs}
       sx={{
         width: '100%',
         maxWidth: 'none',

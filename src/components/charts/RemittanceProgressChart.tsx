@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -9,12 +10,11 @@ import type { EChartsOption } from 'echarts';
 import {
   Box,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 
 import { EChart } from '@/components/charts/EChart';
 import { useInViewOnce } from '@/components/common/RollingCurrency';
+import { useContainerWidth } from '@/hooks/useContainerWidth';
 import type {
   NotasResumoKpis,
   RemessaControlResumo,
@@ -319,27 +319,39 @@ export function RemittanceProgressChart({
   quantidades,
   remessaTransporte,
 }: RemittanceProgressChartProps) {
-  const theme = useTheme();
+  const [inViewRef, inView] =
+    useInViewOnce(
+      0.35,
+      '0px 0px -100px 0px',
+    );
 
-  const isMobile = useMediaQuery(
-    theme.breakpoints.down('sm'),
+  const [widthRef, containerWidth] =
+    useContainerWidth();
+
+  const setRefs = useCallback(
+    (node: HTMLElement | null) => {
+      inViewRef(node);
+      widthRef(node);
+    },
+    [inViewRef, widthRef],
   );
 
-  const isTablet = useMediaQuery(
-    theme.breakpoints.between('sm', 'lg'),
-  );
+  /*
+   * Baseado na largura real do card, não na
+   * viewport — o card pode estar espremido num
+   * grid de 3 colunas mesmo em janelas largas.
+   */
+  const isMobile =
+    containerWidth > 0 && containerWidth < 420;
+
+  const isTablet =
+    containerWidth >= 420 && containerWidth < 640;
 
   const gaugeHeight = isMobile
     ? 215
     : isTablet
       ? 275
       : 320;
-
-  const [containerRef, inView] =
-    useInViewOnce(
-      0.35,
-      '0px 0px -100px 0px',
-    );
 
   const quantidadesFinais = useMemo<
     RemittanceQuantities | null
@@ -445,9 +457,12 @@ export function RemittanceProgressChart({
     [data, quantidadesFinais, custoEntregueReal],
   );
 
+  const stackGauges =
+    containerWidth > 0 && containerWidth < 420;
+
   return (
     <Box
-      ref={containerRef}
+      ref={setRefs}
       sx={{
         width: '100%',
         maxWidth: 'none',
@@ -455,13 +470,11 @@ export function RemittanceProgressChart({
 
         display: 'grid',
 
-        gridTemplateColumns: {
-          xs: '1fr',
-          sm:
-            gauges.length === 3
-              ? 'repeat(3, minmax(0, 1fr))'
-              : 'repeat(2, minmax(0, 1fr))',
-        },
+        gridTemplateColumns: stackGauges
+          ? '1fr'
+          : gauges.length === 3
+            ? 'repeat(3, minmax(0, 1fr))'
+            : 'repeat(2, minmax(0, 1fr))',
 
         alignItems: 'start',
 
