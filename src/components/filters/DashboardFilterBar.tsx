@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -9,22 +10,31 @@ import type {
 
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+
 import {
+  Autocomplete,
   Box,
   Button,
   Card,
   CardContent,
   CircularProgress,
   TextField,
+  Typography,
 } from '@mui/material';
 
 import type {
   DashboardFilters,
+  ProjetoFiltro,
 } from '@/types/dashboard';
+
 
 interface DashboardFilterBarProps {
   initialFilters: DashboardFilters;
+
+  projetos: ProjetoFiltro[];
+
   loading?: boolean;
+  loadingProjetos?: boolean;
 
   onApply: (
     filters: DashboardFilters,
@@ -32,6 +42,7 @@ interface DashboardFilterBarProps {
 
   onLogout: () => void;
 }
+
 
 const inputSx = {
   '& .MuiInputLabel-root': {
@@ -78,25 +89,26 @@ const inputSx = {
     color: '#0f172a',
     fontWeight: 600,
   },
-
-  '& input[type="number"]': {
-    MozAppearance: 'textfield',
-  },
-
-  '& input[type="number"]::-webkit-outer-spin-button': {
-    WebkitAppearance: 'none',
-    margin: 0,
-  },
-
-  '& input[type="number"]::-webkit-inner-spin-button': {
-    WebkitAppearance: 'none',
-    margin: 0,
-  },
 };
+
+
+function normalizarPesquisa(
+  valor: string | number | null | undefined,
+): string {
+  return String(valor ?? '')
+    .trim()
+    .toLocaleLowerCase('pt-BR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '');
+}
+
 
 export function DashboardFilterBar({
   initialFilters,
+  projetos,
   loading = false,
+  loadingProjetos = false,
   onApply,
   onLogout,
 }: DashboardFilterBarProps) {
@@ -109,10 +121,30 @@ export function DashboardFilterBar({
     setDraft(initialFilters);
   }, [initialFilters]);
 
+  const projetoSelecionado = useMemo(
+    () => {
+      return (
+        projetos.find(
+          (projeto) =>
+            Number(projeto.codproj) ===
+            Number(draft.codproj),
+        ) ?? null
+      );
+    },
+    [
+      projetos,
+      draft.codproj,
+    ],
+  );
+
   function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
+
+    if (!draft.codproj) {
+      return;
+    }
 
     onApply({
       codproj: Number(draft.codproj),
@@ -121,7 +153,7 @@ export function DashboardFilterBar({
         draft.dtneg_inicial || null,
 
       dtneg_final:
-        draft.dtneg_final || null
+        draft.dtneg_final || null,
     });
   }
 
@@ -169,26 +201,188 @@ export function DashboardFilterBar({
             flexWrap: 'wrap',
           }}
         >
-          <TextField
-            type="number"
-            label="Código do projeto"
-            value={draft.codproj}
-            onChange={(event) => {
+          <Autocomplete
+            openOnFocus
+            autoHighlight
+            clearOnEscape
+
+            options={projetos}
+
+            value={projetoSelecionado}
+
+            loading={loadingProjetos}
+
+            loadingText="Carregando projetos..."
+            noOptionsText="Nenhum projeto encontrado"
+
+            isOptionEqualToValue={(
+              option,
+              value,
+            ) =>
+              Number(option.codproj) ===
+              Number(value.codproj)
+            }
+
+            getOptionLabel={(option) =>
+              option.label_projeto ||
+              `${option.codproj} - ${option.nome_projeto}`
+            }
+
+            onChange={(
+              _event,
+              novoProjeto,
+            ) => {
               setDraft((current) => ({
                 ...current,
 
-                codproj: Number(
-                  event.target.value,
-                ),
+                codproj:
+                  novoProjeto?.codproj ?? 0,
               }));
             }}
-            required
-            sx={{
-              ...inputSx,
 
+            filterOptions={(
+              options,
+              state,
+            ) => {
+              const pesquisa =
+                normalizarPesquisa(
+                  state.inputValue,
+                );
+
+              if (!pesquisa) {
+                return options;
+              }
+
+              return options.filter(
+                (projeto) => {
+                  const codigo =
+                    normalizarPesquisa(
+                      projeto.codproj,
+                    );
+
+                  const identificacao =
+                    normalizarPesquisa(
+                      projeto.identificacao,
+                    );
+
+                  const abreviatura =
+                    normalizarPesquisa(
+                      projeto.abreviatura,
+                    );
+
+                  const nome =
+                    normalizarPesquisa(
+                      projeto.nome_projeto,
+                    );
+
+                  const label =
+                    normalizarPesquisa(
+                      projeto.label_projeto,
+                    );
+
+                  return (
+                    codigo.includes(pesquisa) ||
+                    identificacao.includes(
+                      pesquisa,
+                    ) ||
+                    abreviatura.includes(
+                      pesquisa,
+                    ) ||
+                    nome.includes(pesquisa) ||
+                    label.includes(pesquisa)
+                  );
+                },
+              );
+            }}
+
+            renderOption={(
+              props,
+              option,
+            ) => (
+              <Box
+                component="li"
+                {...props}
+                key={option.codproj}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems:
+                    'flex-start !important',
+
+                  py: 1.25,
+                }}
+              >
+                <Typography
+                  component="span"
+                  sx={{
+                    color: '#0f172a',
+                    fontSize: '0.92rem',
+                    fontWeight: 800,
+                  }}
+                >
+                  {option.nome_projeto}
+                </Typography>
+
+                <Typography
+                  component="span"
+                  variant="caption"
+                  sx={{
+                    mt: 0.25,
+                    color: '#64748b',
+                    fontWeight: 600,
+                  }}
+                >
+                  Código: {option.codproj}
+
+                  {option.abreviatura &&
+                  option.abreviatura !==
+                    option.nome_projeto
+                    ? ` • Abreviação: ${option.abreviatura}`
+                    : ''}
+                </Typography>
+              </Box>
+            )}
+
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                required
+                label="Projeto"
+                placeholder={
+                  loadingProjetos
+                    ? 'Carregando...'
+                    : 'Código, nome ou abreviação'
+                }
+                slotProps={{
+                  ...params.slotProps,
+
+                  input: {
+                    ...params.slotProps.input,
+
+                    endAdornment: (
+                      <>
+                        {loadingProjetos ? (
+                          <CircularProgress
+                            size={18}
+                          />
+                        ) : null}
+
+                        {
+                          params.slotProps.input
+                            .endAdornment
+                        }
+                      </>
+                    ),
+                  },
+                }}
+                sx={inputSx}
+              />
+            )}
+
+            sx={{
               width: {
                 xs: '100%',
-                sm: 230,
+                sm: 360,
               },
             }}
           />
@@ -255,6 +449,7 @@ export function DashboardFilterBar({
             type="submit"
             disabled={
               loading ||
+              loadingProjetos ||
               !draft.codproj
             }
             startIcon={
@@ -339,7 +534,9 @@ export function DashboardFilterBar({
           <Button
             type="button"
             onClick={onLogout}
-            startIcon={<LogoutRoundedIcon />}
+            startIcon={
+              <LogoutRoundedIcon />
+            }
             sx={{
               ml: {
                 xs: 0,
@@ -359,11 +556,15 @@ export function DashboardFilterBar({
               fontSize: '0.95rem',
               fontWeight: 700,
 
-              border: '1px solid rgba(148, 163, 184, 0.34)',
+              border:
+                '1px solid rgba(148, 163, 184, 0.34)',
 
               '&:hover': {
-                backgroundColor: 'rgba(148, 163, 184, 0.10)',
-                borderColor: 'rgba(100, 116, 139, 0.55)',
+                backgroundColor:
+                  'rgba(148, 163, 184, 0.10)',
+
+                borderColor:
+                  'rgba(100, 116, 139, 0.55)',
               },
 
               width: {

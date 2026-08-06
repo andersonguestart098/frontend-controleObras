@@ -4,6 +4,14 @@ export interface DashboardFilters {
   dtneg_final: string | null;
 }
 
+export interface ProjetoFiltro {
+  codproj: number;
+  identificacao: string | null;
+  abreviatura: string | null;
+  nome_projeto: string;
+  label_projeto: string;
+}
+
 export interface VendasKpis {
   total_vendas: number;
   total_devolucoes: number;

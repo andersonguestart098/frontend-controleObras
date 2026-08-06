@@ -36,6 +36,7 @@ import { useRemessasControl } from '@/hooks/useRemessasControl';
 import { useMovimentos } from '../hooks/useMovimentos';
 import { usePagamentos } from '@/hooks/usePagamentos';
 import { useComprasDetalhes } from '@/hooks/useComprasDetalhes';
+import { useProjetos } from '@/hooks/useProjetos';
 import { useVExpensesExpenses } from '@/hooks/useVExpensesExpenses';
 import { useVExpensesSummary } from '@/hooks/useVExpensesSummary';
 
@@ -379,6 +380,8 @@ export function DashboardPage() {
     useState<DashboardFilters>(
       initialFilters,
     );
+
+  const projetos = useProjetos();
 
   const dashboard =
     useDashboardKpis(filters);
@@ -852,13 +855,18 @@ export function DashboardPage() {
         >
           <Box sx={fadeUpSx(90)}>
             <DashboardFilterBar
-              initialFilters={filters}
-              loading={isUpdating}
-              onApply={handleApplyFilters}
-              onLogout={() => {
-                void handleLogout();
-              }}
-            />
+            initialFilters={filters}
+            projetos={projetos.data ?? []}
+            loading={isUpdating}
+            loadingProjetos={
+              projetos.isPending ||
+              projetos.isFetching
+            }
+            onApply={handleApplyFilters}
+            onLogout={() => {
+              void handleLogout();
+            }}
+          />
           </Box>
 
           {dashboard.isError ? (

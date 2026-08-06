@@ -3,6 +3,7 @@ import type {
   DashboardFilters,
   DashboardResponse,
   PagamentosResponse,
+  ProjetoFiltro,
   RemessaControlResponse,
 } from '@/types/dashboard';
 
@@ -13,6 +14,20 @@ import type {
 import {
   httpClient,
 } from './httpClient';
+
+export async function getProjetos(
+  signal?: AbortSignal,
+): Promise<ProjetoFiltro[]> {
+  const response =
+    await httpClient.get<ProjetoFiltro[]>(
+      '/dashboard/projects',
+      {
+        signal,
+      },
+    );
+
+  return response.data;
+}
 
 export async function getDashboardKpis(
   filters: DashboardFilters,
