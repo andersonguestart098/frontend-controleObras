@@ -451,7 +451,10 @@ function ResultBreakdownCard({
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, minmax(0, 1fr))',
+              },
               gap: 1.5,
               mt: 1.2,
             }}
@@ -2716,10 +2719,13 @@ function ThreeColumnMetric({
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 1.25,
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(3, minmax(0, 1fr))',
+            },
+            gap: { xs: 0.75, sm: 1.25 },
             mt: 0.35,
-            minHeight: 40,
+            minHeight: { sm: 40 },
           }}
         >
           {items.map((item, index) => (
@@ -2727,11 +2733,28 @@ function ThreeColumnMetric({
               key={item.label}
               sx={{
                 minWidth: 0,
-                pl: index === 0 ? 0 : 1.25,
-                borderLeft:
-                  index === 0
-                    ? 'none'
-                    : '1px solid rgba(148, 163, 184, 0.22)',
+                pl: {
+                  xs: 0,
+                  sm: index === 0 ? 0 : 1.25,
+                },
+                borderLeft: {
+                  xs: 'none',
+                  sm:
+                    index === 0
+                      ? 'none'
+                      : '1px solid rgba(148, 163, 184, 0.22)',
+                },
+                borderTop: {
+                  xs:
+                    index === 0
+                      ? 'none'
+                      : '1px solid rgba(148, 163, 184, 0.16)',
+                  sm: 'none',
+                },
+                pt: {
+                  xs: index === 0 ? 0 : 0.65,
+                  sm: 0,
+                },
               }}
             >
               <Typography
@@ -3231,7 +3254,7 @@ export function SummarySection({
                     textTransform: 'uppercase',
                   }}
                 >
-                  Mão de obra
+                  despesas mão de obra
                 </Typography>
 
                 <Typography

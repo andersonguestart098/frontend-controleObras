@@ -821,7 +821,22 @@ function DespesasCard({
   const totalVencido = safeNumber(kpis?.total_vencido);
   const totalEmAberto = safeNumber(kpis?.total_em_aberto);
 
-  const items: [MetricItem, MetricItem, MetricItem] = [
+  const totalDespesas =
+    kpis?.total_despesas !== undefined
+      ? safeNumber(kpis.total_despesas)
+      : despesas.reduce(
+          (acumulado, despesa) =>
+            acumulado + safeNumber(despesa.valor_despesa),
+          0,
+        );
+
+  const items: MetricItem[] = [
+    {
+      label: 'Total',
+      value: totalDespesas,
+      color: '#0f172a',
+      format: 'currency',
+    },
     {
       label: 'Pago',
       value: totalPago,
@@ -973,8 +988,15 @@ function DespesasCard({
             sx={{
               mt: 1.35,
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 0,
+              gridTemplateColumns: {
+                xs: 'repeat(2, minmax(0, 1fr))',
+                sm: 'repeat(4, minmax(0, 1fr))',
+              },
+              rowGap: {
+                xs: 1.1,
+                sm: 0,
+              },
+              columnGap: 0,
             }}
           >
             {items.map((item, index) => (
@@ -982,11 +1004,20 @@ function DespesasCard({
                 key={item.label}
                 sx={{
                   minWidth: 0,
-                  pl: index === 0 ? 0 : 1.25,
-                  borderLeft:
-                    index === 0
-                      ? 'none'
-                      : '1px solid rgba(148, 163, 184, 0.20)',
+                  pl: {
+                    xs: index % 2 === 0 ? 0 : 1.25,
+                    sm: index === 0 ? 0 : 1.25,
+                  },
+                  borderLeft: {
+                    xs:
+                      index % 2 === 0
+                        ? 'none'
+                        : '1px solid rgba(148, 163, 184, 0.20)',
+                    sm:
+                      index === 0
+                        ? 'none'
+                        : '1px solid rgba(148, 163, 184, 0.20)',
+                  },
                 }}
               >
                 <Typography
@@ -1007,7 +1038,7 @@ function DespesasCard({
                   sx={{
                     mt: 0.35,
                     color: item.color,
-                    fontSize: { xs: '0.93rem', md: '1.03rem' },
+                    fontSize: { xs: '0.82rem', sm: '0.93rem', md: '1.03rem' },
                     lineHeight: 1.15,
                     fontWeight: 900,
                     letterSpacing: '-0.025em',
