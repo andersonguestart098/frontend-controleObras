@@ -8,7 +8,6 @@ import type {
   FormEvent,
 } from 'react';
 
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 
 import {
@@ -22,6 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 
+import { QuickActionsMenu } from '@/components/layout/QuickActionsMenu';
 import type {
   DashboardFilters,
   ProjetoFiltro,
@@ -531,50 +531,19 @@ export function DashboardFilterBar({
               : 'Atualizar dashboard'}
           </Button>
 
-          <Button
-            type="button"
-            onClick={onLogout}
-            startIcon={
-              <LogoutRoundedIcon />
-            }
+          <Box
             sx={{
               ml: {
                 xs: 0,
                 lg: 'auto',
               },
 
-              height: 58,
-
-              px: 2.4,
-
-              borderRadius: 2.5,
-
-              textTransform: 'none',
-
-              color: '#64748b',
-
-              fontSize: '0.95rem',
-              fontWeight: 700,
-
-              border:
-                '1px solid rgba(148, 163, 184, 0.34)',
-
-              '&:hover': {
-                backgroundColor:
-                  'rgba(148, 163, 184, 0.10)',
-
-                borderColor:
-                  'rgba(100, 116, 139, 0.55)',
-              },
-
-              width: {
-                xs: '100%',
-                sm: 'auto',
-              },
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
-            Sair
-          </Button>
+            <QuickActionsMenu onLogout={onLogout} />
+          </Box>
         </Box>
       </CardContent>
     </Card>
