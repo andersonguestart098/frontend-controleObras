@@ -127,7 +127,7 @@ const fadeUpSx = (
 ) => ({
   opacity: 0,
   transform: 'translateY(18px)',
-  willChange: 'opacity, transform',
+  willChange: 'opacity',
 
   animation:
     'fadeUp 650ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
@@ -508,7 +508,9 @@ export function DashboardPage() {
 
           '100%': {
             opacity: 1,
-            transform: 'translateY(0)',
+            // Libera descendentes com position: fixed
+            // depois que a animação de entrada termina.
+            transform: 'none',
           },
         },
       }}
